@@ -41,8 +41,6 @@ import (
 
 	"fmt"
 
-	"strings"
-
 	"os"
 
 	"sync"
@@ -132,7 +130,7 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 
 // ExecuteSpecs : Check for updates, validates the specs (by invoking the respective language runners), initiates the registry which is needed for console reporting, execution API and Rerunning of specs
 // and finally saves the execution result as binary in .gauge folder.
-var ExecuteSpecs = func(specDirs []string) int {
+var ExecuteSpecs = func(res *validation.ValidationResult, specDirs []string) int {
 	err := validateFlags()
 	if err != nil {
 		logger.Fatalf(true, err.Error())
@@ -143,21 +141,6 @@ var ExecuteSpecs = func(specDirs []string) int {
 		defer i.PrintUpdateBuffer()
 	}
 	skel.SetupPlugins(MachineReadable)
-	res := validation.ValidateSpecs(specDirs, false)
-	if len(res.Errs) > 0 {
-		if res.ParseOk {
-			return ParseFailed
-		}
-		return ValidationFailed
-	}
-	if res.SpecCollection.Size() < 1 {
-		logger.Infof(true, "No specifications found in %s.", strings.Join(specDirs, ", "))
-		res.Runner.Kill()
-		if res.ParseOk {
-			return Success
-		}
-		return ExecutionFailed
-	}
 	event.InitRegistry()
 	wg := &sync.WaitGroup{}
 	reporter.ListenExecutionEvents(wg)

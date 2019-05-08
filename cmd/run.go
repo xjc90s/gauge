@@ -18,11 +18,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
 
 	"github.com/getgauge/gauge/gauge"
+	"github.com/getgauge/gauge/validation"
 
 	"strings"
 
@@ -230,8 +232,11 @@ func execute(cmd *cobra.Command, args []string) {
 	if !skipCommandSave {
 		rerun.WritePrevArgs(os.Args)
 	}
+	currentContext = context.WithValue(context.Background(), CommandContext("Command"), "execution")
+	validateCmd.Run(cmd, args)
 	installMissingPlugins(installPlugins)
-	exitCode := execution.ExecuteSpecs(specs)
+	res := currentContext.Value(CommandContext("ValidationResult")).(*validation.ValidationResult)
+	exitCode := execution.ExecuteSpecs(res, specs)
 	notifyTelemetryIfNeeded(cmd, args)
 	if failSafe && exitCode != execution.ParseFailed {
 		exitCode = 0

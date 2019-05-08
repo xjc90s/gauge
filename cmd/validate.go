@@ -18,7 +18,13 @@
 package cmd
 
 import (
+	"context"
+	"os"
+	"strings"
+
 	"github.com/getgauge/gauge/config"
+	"github.com/getgauge/gauge/logger"
+	"github.com/getgauge/gauge/util"
 	"github.com/getgauge/gauge/validation"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +46,30 @@ var (
 			if err := config.SetProjectRoot(args); err != nil {
 				exit(err, cmd.UsageString())
 			}
-			validation.Validate(args)
+			if len(args) == 0 {
+				args = append(args, util.GetSpecDirs()...)
+			}
+			res := validation.ValidateSpecs(args, false)
+			if currentContext != nil && currentContext.Value(CommandContext("Command")) == "execution" {
+				currentContext = context.WithValue(currentContext, CommandContext("ValidationResult"), res)
+			} else {
+				if len(res.Errs) > 0 {
+					os.Exit(1)
+				}
+				if res.SpecCollection.Size() < 1 {
+					logger.Infof(true, "No specifications found in %s.", strings.Join(args, ", "))
+					res.Runner.Kill()
+					if res.ParseOk {
+						os.Exit(0)
+					}
+					os.Exit(1)
+				}
+				res.Runner.Kill()
+				if res.ErrMap.HasErrors() {
+					os.Exit(1)
+				}
+				logger.Infof(true, "No errors found.")
+			}
 		},
 		DisableAutoGenTag: true,
 	}

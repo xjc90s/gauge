@@ -29,7 +29,6 @@ package validation
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 
@@ -40,7 +39,6 @@ import (
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/reporter"
 	"github.com/getgauge/gauge/runner"
-	"github.com/getgauge/gauge/util"
 )
 
 // TableRows is used to check for table rows range validation.
@@ -116,30 +114,6 @@ func NewStepValidationError(s *gauge.Step, m string, f string, e *gm.StepValidat
 	return StepValidationError{step: s, message: m, fileName: f, errorType: e, suggestion: suggestion}
 }
 
-// Validate validates specs and if it has any errors, it exits.
-func Validate(args []string) {
-	if len(args) == 0 {
-		args = append(args, util.GetSpecDirs()...)
-	}
-	res := ValidateSpecs(args, false)
-	if len(res.Errs) > 0 {
-		os.Exit(1)
-	}
-	if res.SpecCollection.Size() < 1 {
-		logger.Infof(true, "No specifications found in %s.", strings.Join(args, ", "))
-		res.Runner.Kill()
-		if res.ParseOk {
-			os.Exit(0)
-		}
-		os.Exit(1)
-	}
-	res.Runner.Kill()
-	if res.ErrMap.HasErrors() {
-		os.Exit(1)
-	}
-	logger.Infof(true, "No errors found.")
-}
-
 //TODO : duplicate in execute.go. Need to fix runner init.
 func startAPI(debug bool) runner.Runner {
 	sc := api.StartAPI(debug, reporter.Current())
@@ -166,7 +140,7 @@ func NewValidationResult(s *gauge.SpecCollection, errMap *gauge.BuildErrors, r r
 }
 
 // ValidateSpecs parses the specs, creates a new validator and call the runner to get the validation result.
-func ValidateSpecs(args []string, debug bool) *ValidationResult {
+var ValidateSpecs = func(args []string, debug bool) *ValidationResult {
 	conceptDict, res, err := parser.ParseConcepts()
 	if err != nil {
 		logger.Fatalf(true, "Unable to validate : %s", err.Error())

@@ -18,6 +18,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -48,6 +49,8 @@ const (
 	gaugeVersionName    = "version"
 )
 
+type CommandContext string
+
 var (
 	GaugeCmd = &cobra.Command{
 		Use: "gauge <command> [flags] [args]",
@@ -77,6 +80,7 @@ var (
 	dir             string
 	machineReadable bool
 	gaugeVersion    bool
+	currentContext  context.Context
 )
 
 type notification struct {
