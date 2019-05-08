@@ -15,12 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package skel
+package install
 
 import (
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
-	"github.com/getgauge/gauge/plugin/install"
 )
 
 const (
@@ -48,18 +47,7 @@ func installPlugins(plugins []string, silent bool) {
 		logger.Infof(true, "Installing required plugins.")
 	}
 	for _, p := range plugins {
-		installPlugin(p, silent)
-	}
-}
-
-func installPlugin(name string, silent bool) {
-	logger.Debugf(true, "Installing plugin '%s'", name)
-	res := install.Plugin(name, "", silent)
-	if res.Error != nil {
-		logger.Debugf(true, res.Error.Error())
-	} else if res.Version != "" {
-		logger.Infof(true, "Successfully installed plugin '%s' version %s", name, res.Version)
-	} else {
-		logger.Infof(true, "Successfully installed plugin '%s'", name)
+		logger.Debugf(true, "Installing plugin '%s'", p)
+		HandleInstallResult(Plugin(p, "", silent), p, false)
 	}
 }

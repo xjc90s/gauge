@@ -37,7 +37,6 @@ import (
 	"time"
 
 	"github.com/getgauge/gauge/plugin"
-	"github.com/getgauge/gauge/skel"
 
 	"fmt"
 
@@ -140,7 +139,7 @@ var ExecuteSpecs = func(res *validation.ValidationResult, specDirs []string) int
 		i.BufferUpdateDetails()
 		defer i.PrintUpdateBuffer()
 	}
-	skel.SetupPlugins(MachineReadable)
+	install.SetupPlugins(MachineReadable)
 	event.InitRegistry()
 	wg := &sync.WaitGroup{}
 	reporter.ListenExecutionEvents(wg)
