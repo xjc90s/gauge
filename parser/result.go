@@ -17,23 +17,11 @@
 
 package parser
 
-import "fmt"
+import (
+	"fmt"
 
-// ParseError holds information about a parse failure
-type ParseError struct {
-	FileName string
-	LineNo   int
-	Message  string
-	LineText string
-}
-
-// Error prints error with filename, line number, error message and step text.
-func (se ParseError) Error() string {
-	if se.LineNo == 0 && se.FileName == "" {
-		return fmt.Sprintf("%s", se.Message)
-	}
-	return fmt.Sprintf("%s:%d %s => '%s'", se.FileName, se.LineNo, se.Message, se.LineText)
-}
+	er "github.com/getgauge/gauge/error"
+)
 
 func (token *Token) String() string {
 	return fmt.Sprintf("kind:%d, lineNo:%d, value:%s, line:%s, args:%s", token.Kind, token.LineNo, token.Value, token.LineText, token.Args)
@@ -41,7 +29,7 @@ func (token *Token) String() string {
 
 // ParseResult is a collection of parse errors and warnings in a file.
 type ParseResult struct {
-	ParseErrors []ParseError
+	ParseErrors []er.ParseError
 	Warnings    []*Warning
 	Ok          bool
 	FileName    string

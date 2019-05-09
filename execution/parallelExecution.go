@@ -295,11 +295,6 @@ func isLazy() bool {
 	return strings.ToLower(Strategy) == Lazy
 }
 
-func isValidStrategy(strategy string) bool {
-	strategy = strings.ToLower(strategy)
-	return strategy == Lazy || strategy == Eager
-}
-
 func (e *parallelExecution) isMultithreaded() bool {
 	if !env.EnableMultiThreadedExecution() {
 		return false

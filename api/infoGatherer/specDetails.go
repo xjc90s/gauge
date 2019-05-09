@@ -24,6 +24,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/getgauge/gauge/config"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
@@ -71,7 +72,7 @@ type tagsCache struct {
 
 type SpecDetail struct {
 	Spec *gauge.Specification
-	Errs []parser.ParseError
+	Errs []er.ParseError
 }
 
 func (d *SpecDetail) HasSpec() bool {

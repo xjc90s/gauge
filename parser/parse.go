@@ -44,6 +44,7 @@ import (
 	"strconv"
 
 	"github.com/getgauge/common"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
@@ -109,7 +110,7 @@ func parseSpec(specFile string, conceptDictionary *gauge.ConceptDictionary, spec
 	specFileContent, err := common.ReadFileContents(specFile)
 	if err != nil {
 		specChannel <- nil
-		parseResultChan <- &ParseResult{ParseErrors: []ParseError{ParseError{FileName: specFile, Message: err.Error()}}, Ok: false}
+		parseResultChan <- &ParseResult{ParseErrors: []er.ParseError{er.ParseError{FileName: specFile, Message: err.Error()}}, Ok: false}
 		return
 	}
 	spec, parseResult, err := new(SpecParser).Parse(specFileContent, conceptDictionary, specFile)

@@ -21,9 +21,9 @@ import (
 	"testing"
 
 	"github.com/getgauge/gauge/api/infoGatherer"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
-	"github.com/getgauge/gauge/parser"
 	. "gopkg.in/check.v1"
 )
 
@@ -38,11 +38,11 @@ func (s *MySuite) TestCreateSpecsResponseMessageFor(c *C) {
 	m := h.createSpecsResponseMessageFor([]*infoGatherer.SpecDetail{
 		{
 			Spec: &gauge.Specification{Heading: &gauge.Heading{Value: "Spec heading 1"}},
-			Errs: []parser.ParseError{{Message: "Scenario1 not found"}, {Message: "Scenario2 not found"}},
+			Errs: []er.ParseError{{Message: "Scenario1 not found"}, {Message: "Scenario2 not found"}},
 		},
 		{
 			Spec: &gauge.Specification{},
-			Errs: []parser.ParseError{{Message: "Scenarios not found"}},
+			Errs: []er.ParseError{{Message: "Scenarios not found"}},
 		},
 		{
 			Spec: &gauge.Specification{Heading: &gauge.Heading{Value: "Spec heading 2"}},

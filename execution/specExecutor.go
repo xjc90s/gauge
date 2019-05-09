@@ -18,7 +18,6 @@
 package execution
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,10 +29,10 @@ import (
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
-	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/runner"
-	"github.com/getgauge/gauge/validation"
+
+	er "github.com/getgauge/gauge/error"
 )
 
 type specExecutor struct {
@@ -92,7 +91,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 		event.Notify(event.NewExecutionEvent(event.SpecStart, e.specification, e.specResult, e.stream, *e.currentExecutionInfo))
 		if _, ok := e.errMap.SpecErrs[e.specification]; !ok {
 			if res := e.initSpecDataStore(); res.GetFailed() {
-				e.skipSpecForError(fmt.Errorf("Failed to initialize spec datastore. Error: %s", res.GetErrorMessage()))
+				e.skipSpecForError(er.NewDataStoreInitError(er.SpecDataStore, res.GetErrorMessage()))
 			} else {
 				e.notifyBeforeSpecHook()
 			}
@@ -103,7 +102,7 @@ func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *resul
 	}
 	if execute && !e.specResult.GetFailed() {
 		if e.specification.DataTable.Table.GetRowCount() == 0 {
-			others, tableDriven := parser.FilterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
+			others, tableDriven := filterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
 				return s.ScenarioDataTableRow.IsInitialized()
 			})
 			results, err := e.executeScenarios(others)
@@ -153,8 +152,7 @@ func (e *specExecutor) executeTableRelatedScenarios(scenarios []*gauge.Scenario)
 }
 
 func (e *specExecutor) executeSpec() error {
-	parser.GetResolvedDataTablerows(e.specification.DataTable.Table)
-	nonTableRelatedScenarios, tableRelatedScenarios := parser.FilterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
+	nonTableRelatedScenarios, tableRelatedScenarios := filterTableRelatedScenarios(e.specification.Scenarios, func(s *gauge.Scenario) bool {
 		return s.SpecDataTableRow.IsInitialized()
 	})
 	res, err := e.executeScenarios(nonTableRelatedScenarios)
@@ -204,12 +202,10 @@ func (e *specExecutor) notifyAfterSpecHook() {
 
 func (e *specExecutor) skipSpecForError(err error) {
 	logger.Errorf(true, err.Error())
-	validationError := validation.NewStepValidationError(&gauge.Step{LineNo: e.specification.Heading.LineNo, LineText: e.specification.Heading.Value},
-		err.Error(), e.specification.FileName, nil, "")
 	for _, scenario := range e.specification.Scenarios {
-		e.errMap.ScenarioErrs[scenario] = []error{validationError}
+		e.errMap.ScenarioErrs[scenario] = []error{err}
 	}
-	e.errMap.SpecErrs[e.specification] = []error{validationError}
+	e.errMap.SpecErrs[e.specification] = []error{err}
 	e.specResult.Errors = e.convertErrors(e.errMap.SpecErrs[e.specification])
 	e.specResult.SetSkipped(true)
 }
@@ -223,19 +219,24 @@ func (e *specExecutor) convertErrors(specErrors []error) []*gauge_messages.Error
 	var errors []*gauge_messages.Error
 	for _, e := range specErrors {
 		switch e.(type) {
-		case parser.ParseError:
-			err := e.(parser.ParseError)
+		case er.DataStoreInitError:
+			errors = append(errors, &gauge_messages.Error{
+				Message: e.Error(),
+				Type:    gauge_messages.Error_VALIDATION_ERROR,
+			})
+		case er.ParseError:
+			err := e.(er.ParseError)
 			errors = append(errors, &gauge_messages.Error{
 				Message:    err.Error(),
 				LineNumber: int32(err.LineNo),
 				Filename:   err.FileName,
 				Type:       gauge_messages.Error_PARSE_ERROR,
 			})
-		case validation.StepValidationError, validation.SpecValidationError:
-			errors = append(errors, &gauge_messages.Error{
-				Message: e.Error(),
-				Type:    gauge_messages.Error_VALIDATION_ERROR,
-			})
+			// case validation.StepValidationError, validation.SpecValidationError:
+			// 	errors = append(errors, &gauge_messages.Error{
+			// 		Message: e.Error(),
+			// 		Type:    gauge_messages.Error_VALIDATION_ERROR,
+			// 	})
 		}
 	}
 	return errors
@@ -407,9 +408,20 @@ func executeHook(message *gauge_messages.Message, execTimeTracker result.ExecTim
 
 func hasParseError(errs []error) bool {
 	for _, e := range errs {
-		if _, ok := e.(parser.ParseError); ok {
+		if _, ok := e.(er.ParseError); ok {
 			return true
 		}
 	}
 	return false
+}
+
+func filterTableRelatedScenarios(scenarios []*gauge.Scenario, fun func(*gauge.Scenario) bool) (otherScenarios, tableRelatedScenarios []*gauge.Scenario) {
+	for _, scenario := range scenarios {
+		if fun(scenario) {
+			tableRelatedScenarios = append(tableRelatedScenarios, scenario)
+		} else {
+			otherScenarios = append(otherScenarios, scenario)
+		}
+	}
+	return
 }

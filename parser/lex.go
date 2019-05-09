@@ -25,6 +25,7 @@ import (
 
 	"github.com/getgauge/common"
 	"github.com/getgauge/gauge/env"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 )
 
@@ -69,16 +70,16 @@ func (parser *SpecParser) initialize() {
 }
 
 // GenerateTokens gets tokens based on the parsed line.
-func (parser *SpecParser) GenerateTokens(specText, fileName string) ([]*Token, []ParseError) {
+func (parser *SpecParser) GenerateTokens(specText, fileName string) ([]*Token, []er.ParseError) {
 	parser.initialize()
 	parser.scanner = bufio.NewScanner(strings.NewReader(specText))
 	parser.currentState = initial
-	var errors []ParseError
+	var errors []er.ParseError
 	var newToken *Token
 	var lastTokenErrorCount int
 	for line, hasLine, err := parser.nextLine(); hasLine; line, hasLine, err = parser.nextLine() {
 		if err != nil {
-			errors = append(errors, ParseError{Message: err.Error()})
+			errors = append(errors, er.ParseError{Message: err.Error()})
 			return nil, errors
 		}
 		trimmedLine := strings.TrimSpace(line)
@@ -220,12 +221,12 @@ func isConceptHeader(lookup *gauge.ArgLookup) bool {
 	return lookup == nil
 }
 
-func (parser *SpecParser) accept(token *Token, fileName string) []ParseError {
+func (parser *SpecParser) accept(token *Token, fileName string) []er.ParseError {
 	errs, _ := parser.processors[token.Kind](parser, token)
 	parser.tokens = append(parser.tokens, token)
-	var parseErrs []ParseError
+	var parseErrs []er.ParseError
 	for _, err := range errs {
-		parseErrs = append(parseErrs, ParseError{FileName: fileName, LineNo: token.LineNo, Message: err.Error(), LineText: token.Value})
+		parseErrs = append(parseErrs, er.ParseError{FileName: fileName, LineNo: token.LineNo, Message: err.Error(), LineText: token.Value})
 	}
 	return parseErrs
 }

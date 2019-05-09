@@ -27,6 +27,7 @@ import (
 	"github.com/getgauge/gauge/gauge_messages"
 
 	"github.com/getgauge/common"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/parser"
@@ -48,7 +49,7 @@ func FormatSpecFiles(specFiles ...string) []*parser.ParseResult {
 			continue
 		}
 		if err := formatAndSave(spec); err != nil {
-			result.ParseErrors = []parser.ParseError{parser.ParseError{Message: err.Error()}}
+			result.ParseErrors = []er.ParseError{er.ParseError{Message: err.Error()}}
 		} else {
 			logger.Debugf(true, "Successfully formatted spec: %s", util.RelPathToProjectRoot(spec.FileName))
 		}

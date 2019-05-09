@@ -33,12 +33,9 @@
 package execution
 
 import (
-	"strconv"
 	"time"
 
 	"github.com/getgauge/gauge/plugin"
-
-	"fmt"
 
 	"os"
 
@@ -57,7 +54,6 @@ import (
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
-	"github.com/getgauge/gauge/plugin/install"
 	"github.com/getgauge/gauge/reporter"
 	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/validation"
@@ -130,16 +126,6 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 // ExecuteSpecs : Check for updates, validates the specs (by invoking the respective language runners), initiates the registry which is needed for console reporting, execution API and Rerunning of specs
 // and finally saves the execution result as binary in .gauge folder.
 var ExecuteSpecs = func(res *validation.ValidationResult, specDirs []string) int {
-	err := validateFlags()
-	if err != nil {
-		logger.Fatalf(true, err.Error())
-	}
-	if config.CheckUpdates() {
-		i := &install.UpdateFacade{}
-		i.BufferUpdateDetails()
-		defer i.PrintUpdateBuffer()
-	}
-	install.SetupPlugins(MachineReadable)
 	event.InitRegistry()
 	wg := &sync.WaitGroup{}
 	reporter.ListenExecutionEvents(wg)
@@ -267,20 +253,4 @@ func printExecutionResult(suiteResult *result.SuiteResult, isParsingOk bool) int
 		return ExecutionFailed
 	}
 	return Success
-}
-
-func validateFlags() error {
-	if MaxRetriesCount < 1 {
-		return fmt.Errorf("invalid input(%s) to --max-retries-count flag", strconv.Itoa(MaxRetriesCount))
-	}
-	if !InParallel {
-		return nil
-	}
-	if NumberOfExecutionStreams < 1 {
-		return fmt.Errorf("invalid input(%s) to --n flag", strconv.Itoa(NumberOfExecutionStreams))
-	}
-	if !isValidStrategy(Strategy) {
-		return fmt.Errorf("invalid input(%s) to --strategy flag", Strategy)
-	}
-	return nil
 }

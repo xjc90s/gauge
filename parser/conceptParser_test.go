@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/getgauge/gauge/config"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	. "gopkg.in/check.v1"
 )
@@ -68,7 +69,7 @@ func (s *MySuite) TestConceptDictionaryAddDuplicateConcept(c *C) {
 	c.Assert(hasParseError("Duplicate concept definition found", path, 4, errs), Equals, true)
 }
 
-func hasParseError(eMessage, fileName string, lineNo int, errs []ParseError) bool {
+func hasParseError(eMessage, fileName string, lineNo int, errs []er.ParseError) bool {
 	for _, e := range errs {
 		if e.Message == eMessage && e.FileName == fileName && e.LineNo == lineNo {
 			return true
@@ -721,7 +722,7 @@ func (s *MySuite) TestErrorParsingConceptWithNoSteps(c *C) {
 	c.Assert(parseRes.ParseErrors[0].Error(), Equals, "foo.cpt:1 Concept should have atleast one step => 'my concept'")
 }
 
-func containsAny(errs []ParseError, msg string) bool {
+func containsAny(errs []er.ParseError, msg string) bool {
 	for _, err := range errs {
 		if strings.Contains(err.Message, msg) {
 			return true

@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/getgauge/gauge/gauge"
+	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/validation"
 
 	"strings"
@@ -226,6 +227,9 @@ func execute(cmd *cobra.Command, args []string) {
 	if parallel && tagsToFilterForParallelRun != "" && !env.AllowFilteredParallelExecution() {
 		logger.Fatal(true, "Filtered parallel execution is a experimental feature. It can be enabled via allow_filtered_parallel_execution property.")
 	}
+	if err := validateFlags(); err != nil {
+		logger.Fatal(true, err.Error())
+	}
 	specs := getSpecsDir(args)
 	rerun.SaveState(os.Args[1:], specs)
 
@@ -236,6 +240,17 @@ func execute(cmd *cobra.Command, args []string) {
 	validateCmd.Run(cmd, args)
 	installMissingPlugins(installPlugins)
 	res := currentContext.Value(CommandContext("ValidationResult")).(*validation.ValidationResult)
+	for _, spec := range res.SpecCollection.Specs() {
+		parser.GetResolvedDataTablerows(spec.DataTable.Table)
+	}
+
+	if config.CheckUpdates() {
+		i := &install.UpdateFacade{}
+		i.BufferUpdateDetails()
+		defer i.PrintUpdateBuffer()
+	}
+	install.SetupPlugins(execution.MachineReadable)
+
 	exitCode := execution.ExecuteSpecs(res, specs)
 	notifyTelemetryIfNeeded(cmd, args)
 	if failSafe && exitCode != execution.ParseFailed {
@@ -271,4 +286,25 @@ func handleConflictingParams(setFlags *pflag.FlagSet, args []string) error {
 		return fmt.Errorf("Invalid Command. flag --retry-only can be used only with --max-retry-count")
 	}
 	return nil
+}
+
+func validateFlags() error {
+	if execution.MaxRetriesCount < 1 {
+		return fmt.Errorf("invalid input(%s) to --max-retries-count flag", strconv.Itoa(execution.MaxRetriesCount))
+	}
+	if !execution.InParallel {
+		return nil
+	}
+	if execution.NumberOfExecutionStreams < 1 {
+		return fmt.Errorf("invalid input(%s) to --n flag", strconv.Itoa(execution.NumberOfExecutionStreams))
+	}
+	if !isValidStrategy(execution.Strategy) {
+		return fmt.Errorf("invalid input(%s) to --strategy flag", execution.Strategy)
+	}
+	return nil
+}
+
+func isValidStrategy(strategy string) bool {
+	strategy = strings.ToLower(strategy)
+	return strategy == execution.Lazy || strategy == execution.Eager
 }

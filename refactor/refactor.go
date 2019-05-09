@@ -35,6 +35,7 @@ import (
 	"strings"
 
 	"github.com/getgauge/gauge/config"
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/formatter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
@@ -312,7 +313,7 @@ func SliceIndex(limit int, predicate func(i int) bool) int {
 	return -1
 }
 
-func getRefactorAgent(oldStepText, newStepText string, runner runner.Runner) (*rephraseRefactorer, []parser.ParseError) {
+func getRefactorAgent(oldStepText, newStepText string, runner runner.Runner) (*rephraseRefactorer, []er.ParseError) {
 	specParser := new(parser.SpecParser)
 	stepTokens, errs := specParser.GenerateTokens("* "+oldStepText+"\n"+"*"+newStepText, "")
 	if len(errs) > 0 {
@@ -327,7 +328,7 @@ func getRefactorAgent(oldStepText, newStepText string, runner runner.Runner) (*r
 		}
 		steps = append(steps, step)
 	}
-	return &rephraseRefactorer{oldStep: steps[0], newStep: steps[1], runner: runner}, []parser.ParseError{}
+	return &rephraseRefactorer{oldStep: steps[0], newStep: steps[1], runner: runner}, []er.ParseError{}
 }
 
 func (agent *rephraseRefactorer) requestRunnerForRefactoring(testRunner runner.Runner, stepName string, shouldSaveChanges bool) ([]*gauge_messages.FileChanges, error) {

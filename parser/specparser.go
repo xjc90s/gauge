@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"strings"
 
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 )
 
@@ -71,13 +72,13 @@ func (parser *SpecParser) CreateSpecification(tokens []*Token, conceptDictionary
 	err := parser.validateSpec(specification)
 	if err != nil {
 		finalResult.Ok = false
-		finalResult.ParseErrors = append([]ParseError{err.(ParseError)}, finalResult.ParseErrors...)
+		finalResult.ParseErrors = append([]er.ParseError{err.(er.ParseError)}, finalResult.ParseErrors...)
 	}
 	return specification, finalResult, nil
 }
 
 func (parser *SpecParser) createSpecification(tokens []*Token, specFile string) (*gauge.Specification, *ParseResult) {
-	finalResult := &ParseResult{ParseErrors: make([]ParseError, 0), Ok: true}
+	finalResult := &ParseResult{ParseErrors: make([]er.ParseError, 0), Ok: true}
 	converters := parser.initializeConverters()
 	specification := &gauge.Specification{FileName: specFile}
 	state := initial
@@ -107,26 +108,26 @@ func (parser *SpecParser) createSpecification(tokens []*Token, specFile string) 
 func (parser *SpecParser) validateSpec(specification *gauge.Specification) error {
 	if len(specification.Items) == 0 {
 		specification.AddHeading(&gauge.Heading{})
-		return ParseError{FileName: specification.FileName, LineNo: 1, Message: "Spec does not have any elements"}
+		return er.ParseError{FileName: specification.FileName, LineNo: 1, Message: "Spec does not have any elements"}
 	}
 	if specification.Heading == nil {
 		specification.AddHeading(&gauge.Heading{})
-		return ParseError{FileName: specification.FileName, LineNo: 1, Message: "Spec heading not found"}
+		return er.ParseError{FileName: specification.FileName, LineNo: 1, Message: "Spec heading not found"}
 	}
 	if len(strings.TrimSpace(specification.Heading.Value)) < 1 {
-		return ParseError{FileName: specification.FileName, LineNo: specification.Heading.LineNo, Message: "Spec heading should have at least one character"}
+		return er.ParseError{FileName: specification.FileName, LineNo: specification.Heading.LineNo, Message: "Spec heading should have at least one character"}
 	}
 
 	dataTable := specification.DataTable.Table
 	if dataTable.IsInitialized() && dataTable.GetRowCount() == 0 {
-		return ParseError{FileName: specification.FileName, LineNo: dataTable.LineNo, Message: "Data table should have at least 1 data row"}
+		return er.ParseError{FileName: specification.FileName, LineNo: dataTable.LineNo, Message: "Data table should have at least 1 data row"}
 	}
 	if len(specification.Scenarios) == 0 {
-		return ParseError{FileName: specification.FileName, LineNo: specification.Heading.LineNo, Message: "Spec should have atleast one scenario"}
+		return er.ParseError{FileName: specification.FileName, LineNo: specification.Heading.LineNo, Message: "Spec should have atleast one scenario"}
 	}
 	for _, sce := range specification.Scenarios {
 		if len(sce.Steps) == 0 {
-			return ParseError{FileName: specification.FileName, LineNo: sce.Heading.LineNo, Message: "Scenario should have atleast one step"}
+			return er.ParseError{FileName: specification.FileName, LineNo: sce.Heading.LineNo, Message: "Scenario should have atleast one step"}
 		}
 	}
 	return nil
@@ -149,11 +150,11 @@ func createStep(spec *gauge.Specification, scn *gauge.Scenario, stepToken *Token
 func CreateStepUsingLookup(stepToken *Token, lookup *gauge.ArgLookup, specFileName string) (*gauge.Step, *ParseResult) {
 	stepValue, argsType := extractStepValueAndParameterTypes(stepToken.Value)
 	if argsType != nil && len(argsType) != len(stepToken.Args) {
-		return nil, &ParseResult{ParseErrors: []ParseError{ParseError{specFileName, stepToken.LineNo, "Step text should not have '{static}' or '{dynamic}' or '{special}'", stepToken.LineText}}, Warnings: nil}
+		return nil, &ParseResult{ParseErrors: []er.ParseError{er.ParseError{specFileName, stepToken.LineNo, "Step text should not have '{static}' or '{dynamic}' or '{special}'", stepToken.LineText}}, Warnings: nil}
 	}
 	step := &gauge.Step{FileName: specFileName, LineNo: stepToken.LineNo, Value: stepValue, LineText: strings.TrimSpace(stepToken.LineText)}
 	arguments := make([]*gauge.StepArg, 0)
-	var errors []ParseError
+	var errors []er.ParseError
 	var warnings []*Warning
 	for i, argType := range argsType {
 		argument, parseDetails := createStepArg(stepToken.Args[i], argType, stepToken, lookup, specFileName)

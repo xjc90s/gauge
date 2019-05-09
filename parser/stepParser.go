@@ -24,6 +24,7 @@ import (
 	"strconv"
 	"strings"
 
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 )
@@ -223,7 +224,7 @@ func createStepArg(argValue string, typeOfArg string, token *Token, lookup *gaug
 			case invalidSpecialParamError:
 				return treatArgAsDynamic(argValue, token, lookup, fileName)
 			default:
-				return &gauge.StepArg{ArgType: gauge.Dynamic, Value: argValue, Name: argValue}, &ParseResult{ParseErrors: []ParseError{ParseError{FileName: fileName, LineNo: token.LineNo, Message: fmt.Sprintf("Dynamic parameter <%s> could not be resolved", argValue), LineText: token.LineText}}}
+				return &gauge.StepArg{ArgType: gauge.Dynamic, Value: argValue, Name: argValue}, &ParseResult{ParseErrors: []er.ParseError{er.ParseError{FileName: fileName, LineNo: token.LineNo, Message: fmt.Sprintf("Dynamic parameter <%s> could not be resolved", argValue), LineText: token.LineText}}}
 			}
 		}
 		return resolvedArgValue, nil
@@ -253,7 +254,7 @@ func treatArgAsDynamic(argValue string, token *Token, lookup *gauge.ArgLookup, f
 func validateDynamicArg(argValue string, token *Token, lookup *gauge.ArgLookup, fileName string) (*gauge.StepArg, *ParseResult) {
 	stepArgument := &gauge.StepArg{ArgType: gauge.Dynamic, Value: argValue, Name: argValue}
 	if !isConceptHeader(lookup) && !lookup.ContainsArg(argValue) {
-		return stepArgument, &ParseResult{ParseErrors: []ParseError{ParseError{FileName: fileName, LineNo: token.LineNo, Message: fmt.Sprintf("Dynamic parameter <%s> could not be resolved", argValue), LineText: token.LineText}}}
+		return stepArgument, &ParseResult{ParseErrors: []er.ParseError{er.ParseError{FileName: fileName, LineNo: token.LineNo, Message: fmt.Sprintf("Dynamic parameter <%s> could not be resolved", argValue), LineText: token.LineText}}}
 	}
 
 	return stepArgument, nil

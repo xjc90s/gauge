@@ -24,6 +24,7 @@ import (
 
 	"sync"
 
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
@@ -204,7 +205,7 @@ func (s *MySuite) TestDataTableRowsAreSkippedForUnimplemetedStep(c *C) {
 
 func (s *MySuite) TestConvertParseErrorToGaugeMessagesError(c *C) {
 	spec := &gauge.Specification{Heading: &gauge.Heading{LineNo: 0, Value: "SPEC_HEADING"}, FileName: "FILE"}
-	e := parser.ParseError{Message: "Message", LineNo: 5, FileName: "filename"}
+	e := er.ParseError{Message: "Message", LineNo: 5, FileName: "filename"}
 	se := newSpecExecutor(spec, nil, nil, nil, 0)
 
 	errs := se.convertErrors([]error{e})
@@ -314,7 +315,7 @@ var exampleSpecWithScenarios = &gauge.Specification{
 
 func TestExecuteFailsWhenSpecHasParseErrors(t *testing.T) {
 	errs := gauge.NewBuildErrors()
-	errs.SpecErrs[exampleSpec] = append(errs.SpecErrs[exampleSpec], parser.ParseError{Message: "some error"})
+	errs.SpecErrs[exampleSpec] = append(errs.SpecErrs[exampleSpec], er.ParseError{Message: "some error"})
 	se := newSpecExecutor(exampleSpec, nil, nil, errs, 0)
 
 	res := se.execute(false, true, false)
