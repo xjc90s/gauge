@@ -28,7 +28,7 @@ import (
 	"github.com/getgauge/common"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/golang/protobuf/proto"

@@ -50,13 +50,12 @@ import (
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/rerun"
-	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/reporter"
+	er "github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
-	"github.com/getgauge/gauge/validation"
 )
 
 const (
@@ -86,11 +85,11 @@ var MachineReadable bool
 var ExecutionArgs []*gauge.ExecutionArg
 
 type suiteExecutor interface {
-	run() *result.SuiteResult
+	run() *er.SuiteResult
 }
 
 type executor interface {
-	execute(i gauge.Item, r result.Result)
+	execute(i gauge.Item, r er.Result)
 }
 
 type executionInfo struct {
@@ -125,7 +124,7 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 
 // ExecuteSpecs : Check for updates, validates the specs (by invoking the respective language runners), initiates the registry which is needed for console reporting, execution API and Rerunning of specs
 // and finally saves the execution result as binary in .gauge folder.
-var ExecuteSpecs = func(res *validation.ValidationResult, specDirs []string) int {
+var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) int {
 	event.InitRegistry()
 	wg := &sync.WaitGroup{}
 	reporter.ListenExecutionEvents(wg)
@@ -134,7 +133,7 @@ var ExecuteSpecs = func(res *validation.ValidationResult, specDirs []string) int
 		ListenSuiteEndAndSaveResult(wg)
 	}
 	defer wg.Wait()
-	ei := newExecutionInfo(res.SpecCollection, res.Runner, nil, res.ErrMap, InParallel, 0)
+	ei := newExecutionInfo(res.SpecCollection, r, nil, res.ErrMap, InParallel, 0)
 
 	e := newExecution(ei)
 	return printExecutionResult(e.run(), res.ParseOk)
@@ -212,7 +211,7 @@ func ReadLastExecutionResult() (interface{}, error) {
 	return meta, nil
 }
 
-func printExecutionResult(suiteResult *result.SuiteResult, isParsingOk bool) int {
+func printExecutionResult(suiteResult *er.SuiteResult, isParsingOk bool) int {
 	nSkippedSpecs := suiteResult.SpecsSkippedCount
 	var nExecutedSpecs int
 	if len(suiteResult.SpecResults) != 0 {

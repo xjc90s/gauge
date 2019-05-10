@@ -25,7 +25,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/formatter"
 	"github.com/getgauge/gauge/gauge"
 	gm "github.com/getgauge/gauge/gauge_messages"

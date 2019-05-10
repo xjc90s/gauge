@@ -25,11 +25,12 @@ import (
 
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/resolver"
-	"github.com/getgauge/gauge/validation"
+	"github.com/getgauge/gauge/runner"
 
 	"strings"
 
 	"github.com/getgauge/gauge/config"
+	ctx "github.com/getgauge/gauge/context"
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution"
 	"github.com/getgauge/gauge/execution/rerun"
@@ -236,10 +237,10 @@ func execute(cmd *cobra.Command, args []string) {
 	if !skipCommandSave {
 		rerun.WritePrevArgs(os.Args)
 	}
-	currentContext = context.WithValue(context.Background(), CommandContext("Command"), "execution")
+	ctx.CurrentContext = context.WithValue(ctx.CurrentContext, ctx.CurrentCommand, ctx.Execution)
 	validateCmd.Run(cmd, args)
 	installMissingPlugins(installPlugins)
-	res := currentContext.Value(CommandContext("ValidationResult")).(*validation.ValidationResult)
+	res := ctx.CurrentContext.Value(ctx.ValidationResult).(*gauge.ValidationResult)
 	for _, spec := range res.SpecCollection.Specs() {
 		resolver.GetResolvedDataTablerows(spec.DataTable.Table)
 	}
@@ -251,7 +252,8 @@ func execute(cmd *cobra.Command, args []string) {
 	}
 	install.SetupPlugins(execution.MachineReadable)
 
-	exitCode := execution.ExecuteSpecs(res, specs)
+	runner := ctx.CurrentContext.Value(ctx.Runner).(runner.Runner)
+	exitCode := execution.ExecuteSpecs(res, runner, specs)
 	notifyTelemetryIfNeeded(cmd, args)
 	if failSafe && exitCode != execution.ParseFailed {
 		exitCode = 0

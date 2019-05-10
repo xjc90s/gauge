@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/getgauge/gauge/config"
+	ctx "github.com/getgauge/gauge/context"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/util"
 	"github.com/getgauge/gauge/validation"
@@ -49,22 +50,23 @@ var (
 			if len(args) == 0 {
 				args = append(args, util.GetSpecDirs()...)
 			}
-			res := validation.ValidateSpecs(args, false)
-			if currentContext != nil && currentContext.Value(CommandContext("Command")) == "execution" {
-				currentContext = context.WithValue(currentContext, CommandContext("ValidationResult"), res)
+			res, r := validation.ValidateSpecs(ctx.CurrentContext, args, false)
+			if ctx.CurrentContext.Value(ctx.CurrentCommand) == ctx.Execution {
+				ctx.CurrentContext = context.WithValue(ctx.CurrentContext, ctx.ValidationResult, res)
+				ctx.CurrentContext = context.WithValue(ctx.CurrentContext, ctx.Runner, r)
 			} else {
 				if len(res.Errs) > 0 {
 					os.Exit(1)
 				}
 				if res.SpecCollection.Size() < 1 {
 					logger.Infof(true, "No specifications found in %s.", strings.Join(args, ", "))
-					res.Runner.Kill()
+					r.Kill()
 					if res.ParseOk {
 						os.Exit(0)
 					}
 					os.Exit(1)
 				}
-				res.Runner.Kill()
+				r.Kill()
 				if res.ErrMap.HasErrors() {
 					os.Exit(1)
 				}

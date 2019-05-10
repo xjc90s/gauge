@@ -14,27 +14,20 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
-package execution
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
+package context
 
-	"github.com/getgauge/common"
-	"github.com/getgauge/gauge/config"
-	"github.com/getgauge/gauge/result"
+import ctx "context"
+
+type commandContext string
+
+type command string
+
+var CurrentContext = ctx.Background()
+
+const (
+	CurrentCommand   = commandContext("currentcommand")
+	Execution        = command("execution")
+	ValidationResult = commandContext("validationresult")
+	Runner           = commandContext("Runner")
 )
-
-func TestIfResultFileIsCreated(t *testing.T) {
-	msg := &result.SuiteResult{}
-
-	writeResult(msg)
-
-	file := filepath.Join(config.ProjectRoot, dotGauge, lastRunResult)
-
-	if !common.FileExists(file) {
-		t.Errorf("Expected file %s to exist", file)
-	}
-	os.RemoveAll(filepath.Join(config.ProjectRoot, dotGauge))
-}

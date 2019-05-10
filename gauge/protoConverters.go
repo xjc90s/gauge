@@ -20,8 +20,8 @@ package gauge
 import (
 	"time"
 
-	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge/result"
 )
 
 func ConvertToProtoItem(item Item) *gauge_messages.ProtoItem {

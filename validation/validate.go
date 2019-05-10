@@ -27,12 +27,14 @@ If there is a validation error it skips that scenario and executes other scenari
 package validation
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/getgauge/gauge/api"
+	ctx "github.com/getgauge/gauge/context"
 	"github.com/getgauge/gauge/gauge"
 	gm "github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
@@ -126,21 +128,8 @@ func startAPI(debug bool) runner.Runner {
 	return nil
 }
 
-type ValidationResult struct {
-	SpecCollection *gauge.SpecCollection
-	ErrMap         *gauge.BuildErrors
-	Runner         runner.Runner
-	Errs           []error
-	ParseOk        bool
-}
-
-// NewValidationResult creates a new Validation result
-func NewValidationResult(s *gauge.SpecCollection, errMap *gauge.BuildErrors, r runner.Runner, parseOk bool, e ...error) *ValidationResult {
-	return &ValidationResult{SpecCollection: s, ErrMap: errMap, Runner: r, ParseOk: parseOk, Errs: e}
-}
-
 // ValidateSpecs parses the specs, creates a new validator and call the runner to get the validation result.
-var ValidateSpecs = func(args []string, debug bool) *ValidationResult {
+var ValidateSpecs = func(c context.Context, args []string, debug bool) (*gauge.ValidationResult, runner.Runner) {
 	conceptDict, res, err := parser.ParseConcepts()
 	if err != nil {
 		logger.Fatalf(true, "Unable to validate : %s", err.Error())
@@ -148,6 +137,7 @@ var ValidateSpecs = func(args []string, debug bool) *ValidationResult {
 	errMap := gauge.NewBuildErrors()
 	s, specsFailed := parser.ParseSpecs(args, conceptDict, errMap)
 	r := startAPI(debug)
+	c = context.WithValue(c, ctx.Runner, r)
 	vErrs := NewValidator(s, r, conceptDict).Validate()
 	errMap = getErrMap(errMap, vErrs)
 	s = parser.GetSpecsForDataTableRows(s, errMap)
@@ -155,12 +145,12 @@ var ValidateSpecs = func(args []string, debug bool) *ValidationResult {
 	showSuggestion(vErrs)
 	if !res.Ok {
 		r.Kill()
-		return NewValidationResult(nil, nil, nil, false, errors.New("Parsing failed."))
+		return gauge.NewValidationResult(nil, nil, false, errors.New("parsing failed")), nil
 	}
 	if specsFailed {
-		return NewValidationResult(gauge.NewSpecCollection(s, false), errMap, r, false)
+		return gauge.NewValidationResult(gauge.NewSpecCollection(s, false), errMap, false), r
 	}
-	return NewValidationResult(gauge.NewSpecCollection(s, false), errMap, r, true)
+	return gauge.NewValidationResult(gauge.NewSpecCollection(s, false), errMap, true), r
 }
 
 func getErrMap(errMap *gauge.BuildErrors, validationErrors validationErrors) *gauge.BuildErrors {

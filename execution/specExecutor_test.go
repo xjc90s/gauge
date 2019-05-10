@@ -26,7 +26,7 @@ import (
 
 	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
@@ -166,7 +166,7 @@ func (s *MySuite) TestSpecIsSkippedIfDataRangeIsInvalid(c *C) {
 		StepErrs:     make(map[*gauge.Step]error),
 	}
 	spec := anySpec()
-	errMap.SpecErrs[spec] = []error{validation.NewSpecValidationError("Table row number out of range", spec.FileName)}
+	errMap.SpecErrs[spec] = []error{er.NewDataStoreInitError(er.SpecDataStore, "Table row number out of range")}
 	se := newSpecExecutor(spec, nil, nil, errMap, 0)
 
 	specResult := se.execute(true, false, false)

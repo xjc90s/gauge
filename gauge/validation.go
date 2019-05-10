@@ -14,27 +14,17 @@
 
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
-package execution
 
-import (
-	"os"
-	"path/filepath"
-	"testing"
+package gauge
 
-	"github.com/getgauge/common"
-	"github.com/getgauge/gauge/config"
-	"github.com/getgauge/gauge/result"
-)
+type ValidationResult struct {
+	SpecCollection *SpecCollection
+	ErrMap         *BuildErrors
+	Errs           []error
+	ParseOk        bool
+}
 
-func TestIfResultFileIsCreated(t *testing.T) {
-	msg := &result.SuiteResult{}
-
-	writeResult(msg)
-
-	file := filepath.Join(config.ProjectRoot, dotGauge, lastRunResult)
-
-	if !common.FileExists(file) {
-		t.Errorf("Expected file %s to exist", file)
-	}
-	os.RemoveAll(filepath.Join(config.ProjectRoot, dotGauge))
+// NewValidationResult creates a new Validation result
+func NewValidationResult(s *SpecCollection, errMap *BuildErrors, parseOk bool, e ...error) *ValidationResult {
+	return &ValidationResult{SpecCollection: s, ErrMap: errMap, ParseOk: parseOk, Errs: e}
 }

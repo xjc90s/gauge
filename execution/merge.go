@@ -22,7 +22,7 @@ import (
 
 	"strings"
 
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	m "github.com/getgauge/gauge/gauge_messages"
 )
 

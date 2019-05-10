@@ -22,14 +22,14 @@ import (
 
 	"errors"
 
+	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/runner"
-	"github.com/getgauge/gauge/validation"
 )
 
 type scenarioExecutor struct {
@@ -101,8 +101,7 @@ func (e *scenarioExecutor) initScenarioDataStore() *gauge_messages.ProtoExecutio
 
 func (e *scenarioExecutor) handleScenarioDataStoreFailure(scenarioResult *result.ScenarioResult, scenario *gauge.Scenario, err error) {
 	logger.Errorf(true, err.Error())
-	validationError := validation.NewStepValidationError(&gauge.Step{LineNo: scenario.Heading.LineNo, LineText: scenario.Heading.Value},
-		err.Error(), e.currentExecutionInfo.CurrentSpec.GetFileName(), nil, "")
+	validationError := er.NewDataStoreInitError(er.ScenarioDataStore, err.Error())
 	e.errMap.ScenarioErrs[scenario] = []error{validationError}
 	setSkipInfoInResult(scenarioResult, scenario, e.errMap)
 }

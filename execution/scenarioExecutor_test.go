@@ -20,7 +20,7 @@ package execution
 import (
 	"testing"
 
-	"github.com/getgauge/gauge/execution/result"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 
 	"github.com/getgauge/gauge/gauge_messages"
