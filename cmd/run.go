@@ -24,7 +24,7 @@ import (
 	"strconv"
 
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/resolver"
 	"github.com/getgauge/gauge/validation"
 
 	"strings"
@@ -241,7 +241,7 @@ func execute(cmd *cobra.Command, args []string) {
 	installMissingPlugins(installPlugins)
 	res := currentContext.Value(CommandContext("ValidationResult")).(*validation.ValidationResult)
 	for _, spec := range res.SpecCollection.Specs() {
-		parser.GetResolvedDataTablerows(spec.DataTable.Table)
+		resolver.GetResolvedDataTablerows(spec.DataTable.Table)
 	}
 
 	if config.CheckUpdates() {

@@ -27,6 +27,7 @@ import (
 	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge/resolver"
 )
 
 const (
@@ -218,10 +219,10 @@ func extractStepValueAndParameterTypes(stepTokenValue string) (string, []string)
 
 func createStepArg(argValue string, typeOfArg string, token *Token, lookup *gauge.ArgLookup, fileName string) (*gauge.StepArg, *ParseResult) {
 	if typeOfArg == "special" {
-		resolvedArgValue, err := newSpecialTypeResolver().resolve(argValue)
+		resolvedArgValue, err := resolver.NewSpecialTypeResolver().Resolve(argValue)
 		if err != nil {
 			switch err.(type) {
-			case invalidSpecialParamError:
+			case resolver.InvalidSpecialParamError:
 				return treatArgAsDynamic(argValue, token, lookup, fileName)
 			default:
 				return &gauge.StepArg{ArgType: gauge.Dynamic, Value: argValue, Name: argValue}, &ParseResult{ParseErrors: []er.ParseError{er.ParseError{FileName: fileName, LineNo: token.LineNo, Message: fmt.Sprintf("Dynamic parameter <%s> could not be resolved", argValue), LineText: token.LineText}}}

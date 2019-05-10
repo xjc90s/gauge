@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package parser
+package resolver
 
 import (
 	"fmt"
@@ -27,7 +27,7 @@ import (
 	"github.com/getgauge/gauge/util"
 )
 
-type invalidSpecialParamError struct {
+type InvalidSpecialParamError struct {
 	message string
 }
 
@@ -36,7 +36,7 @@ type specialTypeResolver struct {
 	predefinedResolvers map[string]resolverFn
 }
 
-func (invalidSpecialParamError invalidSpecialParamError) Error() string {
+func (invalidSpecialParamError InvalidSpecialParamError) Error() string {
 	return invalidSpecialParamError.message
 }
 
@@ -134,7 +134,7 @@ func createProtoStepTable(table *gauge.Table, lookup *gauge.ArgLookup) (*gauge_m
 				}
 				value = arg.Value
 			} else if tableCells[i].CellType == gauge.SpecialString {
-				resolvedArg, _ := newSpecialTypeResolver().resolve(value)
+				resolvedArg, _ := NewSpecialTypeResolver().Resolve(value)
 				value = resolvedArg.Value
 			}
 			row = append(row, value)
@@ -145,7 +145,7 @@ func createProtoStepTable(table *gauge.Table, lookup *gauge.ArgLookup) (*gauge_m
 	return protoTable, nil
 }
 
-func newSpecialTypeResolver() *specialTypeResolver {
+func NewSpecialTypeResolver() *specialTypeResolver {
 	resolver := new(specialTypeResolver)
 	resolver.predefinedResolvers = initializePredefinedResolvers()
 	return resolver
@@ -174,9 +174,9 @@ func initializePredefinedResolvers() map[string]resolverFn {
 	}
 }
 
-func (resolver *specialTypeResolver) resolve(arg string) (*gauge.StepArg, error) {
+func (resolver *specialTypeResolver) Resolve(arg string) (*gauge.StepArg, error) {
 	if util.IsWindows() {
-		arg = GetUnescapedString(arg)
+		arg = util.GetUnescapedString(arg)
 	}
 	regEx := regexp.MustCompile("(.*?):(.*)")
 	match := regEx.FindAllStringSubmatch(arg, -1)
@@ -194,7 +194,7 @@ func (resolver *specialTypeResolver) getStepArg(specialType string, value string
 	if found {
 		return resolveFunc(value)
 	}
-	return nil, invalidSpecialParamError{message: fmt.Sprintf("Resolver not found for special param <%s>", arg)}
+	return nil, InvalidSpecialParamError{message: fmt.Sprintf("Resolver not found for special param <%s>", arg)}
 }
 
 // PopulateConceptDynamicParams creates a copy of the lookup and populates table values
@@ -270,7 +270,7 @@ func GetResolvedDataTablerows(table gauge.Table) {
 	for i, cells := range table.Columns {
 		for j, cell := range cells {
 			if cell.CellType == gauge.SpecialString {
-				resolvedArg, _ := newSpecialTypeResolver().resolve(cell.Value)
+				resolvedArg, _ := NewSpecialTypeResolver().Resolve(cell.Value)
 				table.Columns[i][j].Value = resolvedArg.Value
 			}
 		}

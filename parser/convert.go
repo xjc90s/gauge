@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/getgauge/gauge/env"
-	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/util"
 	er "github.com/getgauge/gauge/error"
+	"github.com/getgauge/gauge/gauge"
+	"github.com/getgauge/gauge/resolver"
+	"github.com/getgauge/gauge/util"
 )
 
 func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Specification) ParseResult {
@@ -133,7 +134,7 @@ func (parser *SpecParser) initializeConverters() []func(*Token, *int, *gauge.Spe
 	keywordConverter := converterFn(func(token *Token, state *int) bool {
 		return token.Kind == gauge.DataTableKind
 	}, func(token *Token, spec *gauge.Specification, state *int) ParseResult {
-		resolvedArg, err := newSpecialTypeResolver().resolve(token.Value)
+		resolvedArg, err := resolver.NewSpecialTypeResolver().Resolve(token.Value)
 		if resolvedArg == nil || err != nil {
 			e := er.ParseError{FileName: spec.FileName, LineNo: token.LineNo, LineText: token.LineText, Message: fmt.Sprintf("Could not resolve table from %s", token.LineText)}
 			return ParseResult{ParseErrors: []er.ParseError{e}, Ok: false}

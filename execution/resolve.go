@@ -20,7 +20,7 @@ package execution
 import (
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
-	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/resolver"
 )
 
 type setSkipInfoFn func(protoStep *gauge_messages.ProtoStep, step *gauge.Step)
@@ -60,7 +60,7 @@ func resolveToProtoItem(item gauge.Item, lookup *gauge.ArgLookup, skipFn setSkip
 
 // Not passing pointer as we cannot modify the original concept step's lookup. This has to be populated for each iteration over data table.
 func resolveToProtoConceptItem(concept gauge.Step, lookup *gauge.ArgLookup, skipFn setSkipInfoFn) (*gauge_messages.ProtoItem, error) {
-	if err := parser.PopulateConceptDynamicParams(&concept, lookup); err != nil {
+	if err := resolver.PopulateConceptDynamicParams(&concept, lookup); err != nil {
 		return nil, err
 	}
 	protoConceptItem := gauge.ConvertToProtoItem(&concept)
@@ -76,7 +76,7 @@ func resolveToProtoConceptItem(concept gauge.Step, lookup *gauge.ArgLookup, skip
 			protoConceptItem.GetConcept().GetSteps()[stepIndex] = protoItem
 		} else {
 			conceptStep := protoConceptItem.Concept.Steps[stepIndex].Step
-			err := parser.Resolve(step, &concept, &concept.Lookup, conceptStep)
+			err := resolver.Resolve(step, &concept, &concept.Lookup, conceptStep)
 			if err != nil {
 				return nil, err
 			}
@@ -89,7 +89,7 @@ func resolveToProtoConceptItem(concept gauge.Step, lookup *gauge.ArgLookup, skip
 
 func resolveToProtoStepItem(step *gauge.Step, lookup *gauge.ArgLookup, skipFn setSkipInfoFn) (*gauge_messages.ProtoItem, error) {
 	protoStepItem := gauge.ConvertToProtoItem(step)
-	err := parser.Resolve(step, nil, lookup, protoStepItem.Step)
+	err := resolver.Resolve(step, nil, lookup, protoStepItem.Step)
 	if err != nil {
 		return nil, err
 	}

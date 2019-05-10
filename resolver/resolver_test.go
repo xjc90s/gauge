@@ -15,15 +15,23 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package parser
+package resolver
 
 import (
 	"path/filepath"
+	"testing"
 
 	"github.com/getgauge/gauge/gauge"
+	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/util"
 	. "gopkg.in/check.v1"
 )
+
+func Test(t *testing.T) { TestingT(t) }
+
+type MySuite struct{}
+
+var _ = Suite(&MySuite{})
 
 func (s *MySuite) TestParsingFileSpecialType(c *C) {
 	resolver := newSpecialTypeResolver()

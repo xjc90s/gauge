@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"syscall"
 
 	"strings"
@@ -134,4 +135,10 @@ func ListContains(list []string, val string) bool {
 
 func GetFileContents(filepath string) (string, error) {
 	return common.ReadFileContents(GetPathToFile(filepath))
+}
+
+// GetUnescapedString uses the go escape sequences to escape control characters and non printable characters.
+func GetUnescapedString(string1 string) string {
+	unescaped := strconv.Quote(string1)
+	return unescaped[1 : len(unescaped)-1]
 }
