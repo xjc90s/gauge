@@ -28,9 +28,9 @@ import (
 	"github.com/getgauge/common"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
+	"github.com/getgauge/gauge/result"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -40,7 +40,7 @@ const (
 )
 
 // ListenSuiteEndAndSaveResult listens to execution events and writes the failed scenarios to JSON file
-func ListenSuiteEndAndSaveResult(wg *sync.WaitGroup) {
+func ListenSuiteEndAndSaveResult(wg *sync.WaitGroup, args ...interface{}) {
 	ch := make(chan event.ExecutionEvent, 0)
 	event.Register(ch, event.SuiteEnd)
 	wg.Add(1)

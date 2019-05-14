@@ -26,11 +26,11 @@ import (
 	"sync"
 
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/formatter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
+	"github.com/getgauge/gauge/result"
 )
 
 // IsParallel represents console reporting format based on simple/parallel execution
@@ -127,7 +127,7 @@ func initParallelReporters() {
 }
 
 // ListenExecutionEvents listens to all execution events for reporting on console
-func ListenExecutionEvents(wg *sync.WaitGroup) {
+func ListenExecutionEvents(wg *sync.WaitGroup, args ...interface{}) {
 	ch := make(chan event.ExecutionEvent, 0)
 	initParallelReporters()
 	event.Register(ch, event.SuiteStart, event.SpecStart, event.SpecEnd, event.ScenarioStart, event.ScenarioEnd, event.StepStart, event.StepEnd, event.ConceptStart, event.ConceptEnd, event.SuiteEnd)

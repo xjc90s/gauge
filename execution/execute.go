@@ -39,21 +39,16 @@ import (
 
 	"os"
 
-	"sync"
-
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
 
 	"github.com/getgauge/common"
 	"github.com/getgauge/gauge/config"
-	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/execution/rerun"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
-	"github.com/getgauge/gauge/reporter"
 	er "github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
@@ -126,13 +121,6 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 // and finally saves the execution result as binary in .gauge folder.
 var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) int {
 	event.InitRegistry()
-	wg := &sync.WaitGroup{}
-	reporter.ListenExecutionEvents(wg)
-	rerun.ListenFailedScenarios(wg, specDirs)
-	if env.SaveExecutionResult() {
-		ListenSuiteEndAndSaveResult(wg)
-	}
-	defer wg.Wait()
 	ei := newExecutionInfo(res.SpecCollection, r, nil, res.ErrMap, InParallel, 0)
 
 	e := newExecution(ei)

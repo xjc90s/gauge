@@ -18,9 +18,11 @@
 package event
 
 import (
-	"github.com/getgauge/gauge/result"
+	"sync"
+
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge/result"
 )
 
 // ExecutionEvent represents an event raised during various phases of the
@@ -62,6 +64,8 @@ const (
 
 var subscriberRegistry map[Topic][]chan ExecutionEvent
 
+var listeners = make([]func(w *sync.WaitGroup, args ...interface{}), 0)
+
 // InitRegistry is used for console reporting, execution API and rerun of specs
 func InitRegistry() {
 	subscriberRegistry = make(map[Topic][]chan ExecutionEvent, 0)
@@ -88,5 +92,20 @@ func Register(ch chan ExecutionEvent, topics ...Topic) {
 func Notify(e ExecutionEvent) {
 	for _, c := range subscriberRegistry[e.Topic] {
 		c <- e
+	}
+}
+
+// AddListener adds a listener. Listeners are responsible for subscriptions.
+// Every listener should add itself to the waitgroup if it's spinning off a goroutine
+func AddListener(l func(w *sync.WaitGroup, args ...interface{})) {
+	listeners = append(listeners, l)
+}
+
+// Listen sets up registered listeners with event notifications
+func Listen(args ...interface{}) {
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
+	for _, l := range listeners {
+		l(wg, args)
 	}
 }

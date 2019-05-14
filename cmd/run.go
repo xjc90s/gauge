@@ -23,6 +23,9 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/getgauge/gauge/execution/event"
+	"github.com/getgauge/gauge/reporter"
+
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/resolver"
 	"github.com/getgauge/gauge/runner"
@@ -253,6 +256,13 @@ func execute(cmd *cobra.Command, args []string) {
 	install.SetupPlugins(execution.MachineReadable)
 
 	runner := ctx.CurrentContext.Value(ctx.Runner).(runner.Runner)
+
+	event.AddListener(reporter.ListenExecutionEvents)
+	event.AddListener(rerun.ListenFailedScenarios)
+	if env.SaveExecutionResult() {
+		event.AddListener(execution.ListenSuiteEndAndSaveResult)
+	}
+
 	exitCode := execution.ExecuteSpecs(res, runner, specs)
 	notifyTelemetryIfNeeded(cmd, args)
 	if failSafe && exitCode != execution.ParseFailed {

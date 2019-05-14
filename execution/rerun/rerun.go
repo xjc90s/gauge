@@ -29,10 +29,10 @@ import (
 	"github.com/getgauge/common"
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/util"
 )
 
@@ -83,11 +83,10 @@ func (m *failedMetadata) addFailedItem(itemName string, item string) {
 }
 
 // ListenFailedScenarios listens to execution events and writes the failed scenarios to JSON file
-func ListenFailedScenarios(wg *sync.WaitGroup, specDirs []string) {
+func ListenFailedScenarios(wg *sync.WaitGroup, args ...interface{}) {
+	var specDirs = args[0].([]string)
 	ch := make(chan event.ExecutionEvent, 0)
-	event.Register(ch, event.ScenarioEnd)
-	event.Register(ch, event.SpecEnd)
-	event.Register(ch, event.SuiteEnd)
+	event.Register(ch, event.ScenarioEnd, event.SpecEnd, event.SuiteEnd)
 	wg.Add(1)
 
 	go func() {
