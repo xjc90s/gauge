@@ -33,28 +33,14 @@
 package execution
 
 import (
-	"time"
-
 	"github.com/getgauge/gauge/plugin"
 
-	"os"
-
-	"encoding/json"
-	"io/ioutil"
-	"path/filepath"
-
-	"github.com/getgauge/common"
-	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
 	er "github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
-)
-
-const (
-	executionStatusFile = "executionStatus.json"
 )
 
 // Count of iterations
@@ -119,12 +105,11 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 
 // ExecuteSpecs : Check for updates, validates the specs (by invoking the respective language runners), initiates the registry which is needed for console reporting, execution API and Rerunning of specs
 // and finally saves the execution result as binary in .gauge folder.
-var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) int {
+var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) *er.SuiteResult {
 	event.InitRegistry()
 	ei := newExecutionInfo(res.SpecCollection, r, nil, res.ErrMap, InParallel, 0)
 
-	e := newExecution(ei)
-	return printExecutionResult(e.run(), res.ParseOk)
+	return newExecution(ei).run()
 }
 
 func newExecution(executionInfo *executionInfo) suiteExecutor {
@@ -132,112 +117,4 @@ func newExecution(executionInfo *executionInfo) suiteExecutor {
 		return newParallelExecution(executionInfo)
 	}
 	return newSimpleExecution(executionInfo, true)
-}
-
-type executionStatus struct {
-	Type          string `json:"type"`
-	SpecsExecuted int    `json:"specsExecuted"`
-	SpecsPassed   int    `json:"specsPassed"`
-	SpecsFailed   int    `json:"specsFailed"`
-	SpecsSkipped  int    `json:"specsSkipped"`
-	SceExecuted   int    `json:"sceExecuted"`
-	ScePassed     int    `json:"scePassed"`
-	SceFailed     int    `json:"sceFailed"`
-	SceSkipped    int    `json:"sceSkipped"`
-}
-
-func (status *executionStatus) getJSON() (string, error) {
-	j, err := json.Marshal(status)
-	if err != nil {
-		return "", err
-	}
-	return string(j), nil
-}
-
-func statusJSON(executedSpecs, passedSpecs, failedSpecs, skippedSpecs, executedScenarios, passedScenarios, failedScenarios, skippedScenarios int) string {
-	executionStatus := &executionStatus{}
-	executionStatus.Type = "out"
-	executionStatus.SpecsExecuted = executedSpecs
-	executionStatus.SpecsPassed = passedSpecs
-	executionStatus.SpecsFailed = failedSpecs
-	executionStatus.SpecsSkipped = skippedSpecs
-	executionStatus.SceExecuted = executedScenarios
-	executionStatus.ScePassed = passedScenarios
-	executionStatus.SceFailed = failedScenarios
-	executionStatus.SceSkipped = skippedScenarios
-	s, err := executionStatus.getJSON()
-	if err != nil {
-		logger.Fatalf(true, "Unable to parse execution status information : %v", err.Error())
-	}
-	return s
-}
-
-func writeExecutionResult(content string) {
-	executionStatusFile := filepath.Join(config.ProjectRoot, common.DotGauge, executionStatusFile)
-	dotGaugeDir := filepath.Join(config.ProjectRoot, common.DotGauge)
-	if err := os.MkdirAll(dotGaugeDir, common.NewDirectoryPermissions); err != nil {
-		logger.Fatalf(true, "Failed to create directory in %s. Reason: %s", dotGaugeDir, err.Error())
-	}
-	err := ioutil.WriteFile(executionStatusFile, []byte(content), common.NewFilePermissions)
-	if err != nil {
-		logger.Fatalf(true, "Failed to write to %s. Reason: %s", executionStatusFile, err.Error())
-	}
-}
-
-// ReadLastExecutionResult returns the result of previous execution in JSON format
-// This is stored in $GAUGE_PROJECT_ROOT/.gauge/executionStatus.json file after every execution
-func ReadLastExecutionResult() (interface{}, error) {
-	contents, err := common.ReadFileContents(filepath.Join(config.ProjectRoot, common.DotGauge, executionStatusFile))
-	if err != nil {
-		logger.Fatalf(true, "Failed to read execution status information. Reason: %s", err.Error())
-	}
-	meta := &executionStatus{}
-	if err = json.Unmarshal([]byte(contents), meta); err != nil {
-		logger.Fatalf(true, "Invalid execution status information. Reason: %s", err.Error())
-		return meta, err
-	}
-	return meta, nil
-}
-
-func printExecutionResult(suiteResult *er.SuiteResult, isParsingOk bool) int {
-	nSkippedSpecs := suiteResult.SpecsSkippedCount
-	var nExecutedSpecs int
-	if len(suiteResult.SpecResults) != 0 {
-		nExecutedSpecs = len(suiteResult.SpecResults) - nSkippedSpecs
-	}
-	nFailedSpecs := suiteResult.SpecsFailedCount
-	nPassedSpecs := nExecutedSpecs - nFailedSpecs
-
-	nExecutedScenarios := 0
-	nFailedScenarios := 0
-	nPassedScenarios := 0
-	nSkippedScenarios := 0
-	for _, specResult := range suiteResult.SpecResults {
-		nExecutedScenarios += specResult.ScenarioCount
-		nFailedScenarios += specResult.ScenarioFailedCount
-		nSkippedScenarios += specResult.ScenarioSkippedCount
-	}
-	nExecutedScenarios -= nSkippedScenarios
-	nPassedScenarios = nExecutedScenarios - nFailedScenarios
-	if nExecutedScenarios < 0 {
-		nExecutedScenarios = 0
-	}
-
-	if nPassedScenarios < 0 {
-		nPassedScenarios = 0
-	}
-
-	s := statusJSON(nExecutedSpecs, nPassedSpecs, nFailedSpecs, nSkippedSpecs, nExecutedScenarios, nPassedScenarios, nFailedScenarios, nSkippedScenarios)
-	logger.Infof(true, "Specifications:\t%d executed\t%d passed\t%d failed\t%d skipped", nExecutedSpecs, nPassedSpecs, nFailedSpecs, nSkippedSpecs)
-	logger.Infof(true, "Scenarios:\t%d executed\t%d passed\t%d failed\t%d skipped", nExecutedScenarios, nPassedScenarios, nFailedScenarios, nSkippedScenarios)
-	logger.Infof(true, "\nTotal time taken: %s", time.Millisecond*time.Duration(suiteResult.ExecutionTime))
-	writeExecutionResult(s)
-
-	if !isParsingOk {
-		return ParseFailed
-	}
-	if suiteResult.IsFailed {
-		return ExecutionFailed
-	}
-	return Success
 }

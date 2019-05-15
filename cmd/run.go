@@ -25,6 +25,7 @@ import (
 
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/reporter"
+	"github.com/getgauge/gauge/result"
 
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/resolver"
@@ -263,9 +264,10 @@ func execute(cmd *cobra.Command, args []string) {
 		event.AddListener(execution.ListenSuiteEndAndSaveResult)
 	}
 
-	exitCode := execution.ExecuteSpecs(res, runner, specs)
+	execRes := execution.ExecuteSpecs(res, runner, specs)
+	exitCode := result.Print(execRes, res.ParseOk)
 	notifyTelemetryIfNeeded(cmd, args)
-	if failSafe && exitCode != execution.ParseFailed {
+	if failSafe && exitCode != result.ParseFailed {
 		exitCode = 0
 	}
 	os.Exit(exitCode)

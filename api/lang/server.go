@@ -25,9 +25,9 @@ import (
 	"runtime/debug"
 
 	"github.com/getgauge/gauge/api/infoGatherer"
-	"github.com/getgauge/gauge/execution"
 	"github.com/getgauge/gauge/gauge"
 	gm "github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge/result"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -222,7 +222,7 @@ func (h *LangHandler) Handle(ctx context.Context, conn jsonrpc2.JSONRPC2, req *j
 		}
 		return val, err
 	case "gauge/executionStatus":
-		val, err := execution.ReadLastExecutionResult()
+		val, err := result.ReadLastExecutionResult()
 		if err != nil {
 			logDebug(req, err.Error())
 		}
