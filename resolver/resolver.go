@@ -42,7 +42,7 @@ func (invalidSpecialParamError InvalidSpecialParamError) Error() string {
 
 //Resolve takes a step, a lookup and updates the target after reconciling the dynamic paramters from the given lookup
 func Resolve(step *gauge.Step, parent *gauge.Step, lookup *gauge.ArgLookup, target *gauge_messages.ProtoStep) error {
-	stepParameters, err := getResolvedParams(step, parent, lookup)
+	stepParameters, err := GetResolvedParams(step, parent, lookup)
 	if err != nil {
 		return err
 	}
@@ -56,8 +56,9 @@ func Resolve(step *gauge.Step, parent *gauge.Step, lookup *gauge.ArgLookup, targ
 	return nil
 }
 
-// getResolvedParams based on the arg type(static, dynamic, table, special_string, special_table) resolves the parameter of a step.
-func getResolvedParams(step *gauge.Step, parent *gauge.Step, lookup *gauge.ArgLookup) ([]*gauge_messages.Parameter, error) {
+// exported just because of tests. the tests use a builder from parser package, so I moved the tests temporarily to parser. Need a better way.
+// GetResolvedParams based on the arg type(static, dynamic, table, special_string, special_table) resolves the parameter of a step.
+func GetResolvedParams(step *gauge.Step, parent *gauge.Step, lookup *gauge.ArgLookup) ([]*gauge_messages.Parameter, error) {
 	parameters := make([]*gauge_messages.Parameter, 0)
 	for _, arg := range step.Args {
 		parameter := new(gauge_messages.Parameter)
