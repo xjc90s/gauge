@@ -46,7 +46,7 @@ func StartAPI(debug bool, outputStreamWriter io.Writer) *runner.StartChannels {
 func startAPIService(port int, startChannels *runner.StartChannels, sig *infoGatherer.SpecInfoGatherer, debug bool, outputStreamWriter io.Writer) {
 	startAPIServiceWithoutRunner(port, startChannels, sig)
 
-	runner, err := ConnectToRunner(startChannels.KillChan, debug, outputStreamWriter)
+	runner, err := connectToRunner(startChannels.KillChan, debug, outputStreamWriter)
 	if err != nil {
 		startChannels.ErrorChan <- err
 		return
@@ -70,7 +70,7 @@ func startAPIServiceWithoutRunner(port int, startChannels *runner.StartChannels,
 	go gaugeConnectionHandler.HandleMultipleConnections()
 }
 
-func ConnectToRunner(killChannel chan bool, debug bool, outputStreamWriter io.Writer) (runner.Runner, error) {
+func connectToRunner(killChannel chan bool, debug bool, outputStreamWriter io.Writer) (runner.Runner, error) {
 	manifest, err := manifest.ProjectManifest()
 	if err != nil {
 		return nil, err

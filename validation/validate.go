@@ -33,11 +33,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/getgauge/gauge/api"
 	ctx "github.com/getgauge/gauge/context"
 	"github.com/getgauge/gauge/gauge"
 	gm "github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
+	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/parser"
 	"github.com/getgauge/gauge/reporter"
 	"github.com/getgauge/gauge/runner"
@@ -118,14 +118,17 @@ func NewStepValidationError(s *gauge.Step, m string, f string, e *gm.StepValidat
 
 //TODO : duplicate in execute.go. Need to fix runner init.
 func startAPI(debug bool) runner.Runner {
-	sc := api.StartAPI(debug, reporter.Current())
-	select {
-	case runner := <-sc.RunnerChan:
-		return runner
-	case err := <-sc.ErrorChan:
-		logger.Fatalf(true, "Failed to start gauge API: %s", err.Error())
+	manifest, err := manifest.ProjectManifest()
+	if err != nil {
+		logger.Fatalf(true, "Failed to start runner: %s", err.Error())
 	}
-	return nil
+
+	runner, connErr := runner.Start(manifest, reporter.Current(), make(chan bool), false)
+	if connErr != nil {
+		logger.Fatalf(true, "Failed to connect to runner: %s", err.Error())
+	}
+
+	return runner
 }
 
 // ValidateSpecs parses the specs, creates a new validator and call the runner to get the validation result.
