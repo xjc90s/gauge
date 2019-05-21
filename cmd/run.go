@@ -24,6 +24,7 @@ import (
 	"strconv"
 
 	"github.com/getgauge/gauge/execution/event"
+	"github.com/getgauge/gauge/execution/item"
 	"github.com/getgauge/gauge/reporter"
 	"github.com/getgauge/gauge/result"
 
@@ -214,7 +215,7 @@ func lookupFlagFromArgs(cmd *cobra.Command, arg string) *pflag.Flag {
 
 func addFlagsToExecutionArgs(flags *pflag.FlagSet) {
 	flags.Visit(func(flag *pflag.Flag) {
-		execution.ExecutionArgs = append(execution.ExecutionArgs, &gauge.ExecutionArg{
+		item.ExecutionArgs = append(item.ExecutionArgs, &gauge.ExecutionArg{
 			Name:  flag.Name,
 			Value: []string{flag.Value.String()},
 		})
@@ -303,14 +304,14 @@ func handleConflictingParams(setFlags *pflag.FlagSet, args []string) error {
 }
 
 func validateFlags() error {
-	if execution.MaxRetriesCount < 1 {
-		return fmt.Errorf("invalid input(%s) to --max-retries-count flag", strconv.Itoa(execution.MaxRetriesCount))
+	if item.MaxRetriesCount < 1 {
+		return fmt.Errorf("invalid input(%s) to --max-retries-count flag", strconv.Itoa(item.MaxRetriesCount))
 	}
 	if !execution.InParallel {
 		return nil
 	}
-	if execution.NumberOfExecutionStreams < 1 {
-		return fmt.Errorf("invalid input(%s) to --n flag", strconv.Itoa(execution.NumberOfExecutionStreams))
+	if item.NumberOfExecutionStreams < 1 {
+		return fmt.Errorf("invalid input(%s) to --n flag", strconv.Itoa(item.NumberOfExecutionStreams))
 	}
 	if !isValidStrategy(execution.Strategy) {
 		return fmt.Errorf("invalid input(%s) to --strategy flag", execution.Strategy)

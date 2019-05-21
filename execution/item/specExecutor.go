@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package item
 
 import (
 	"path/filepath"
@@ -24,12 +24,12 @@ import (
 
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 
 	er "github.com/getgauge/gauge/error"
@@ -46,7 +46,7 @@ type specExecutor struct {
 	scenarioExecutor     executor
 }
 
-func newSpecExecutor(s *gauge.Specification, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, stream int) *specExecutor {
+func NewSpecExecutor(s *gauge.Specification, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, stream int) *specExecutor {
 	ei := &gauge_messages.ExecutionInfo{
 		CurrentSpec: &gauge_messages.SpecInfo{
 			Name:     s.Heading.Value,
@@ -70,7 +70,7 @@ func newSpecExecutor(s *gauge.Specification, r runner.Runner, ph plugin.Handler,
 	}
 }
 
-func (e *specExecutor) execute(executeBefore, execute, executeAfter bool) *result.SpecResult {
+func (e *specExecutor) Execute(executeBefore, execute, executeAfter bool) *result.SpecResult {
 	e.specResult = gauge.NewSpecResult(e.specification)
 	if errs, ok := e.errMap.SpecErrs[e.specification]; ok {
 		if hasParseError(errs) {
@@ -179,7 +179,7 @@ func (e *specExecutor) notifyBeforeSpecHook() {
 	e.specResult.ProtoSpec.PreHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setSpecFailure(e.currentExecutionInfo)
-		handleHookFailure(e.specResult, res, result.AddPreHook)
+		result.AddPreHook(e.specResult, res)
 	}
 	m.SpecExecutionStartingRequest.SpecResult = gauge.ConvertToProtoSpecResult(e.specResult)
 	e.pluginHandler.NotifyPlugins(m)
@@ -194,7 +194,7 @@ func (e *specExecutor) notifyAfterSpecHook() {
 	e.specResult.ProtoSpec.PostHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setSpecFailure(e.currentExecutionInfo)
-		handleHookFailure(e.specResult, res, result.AddPostHook)
+		result.AddPostHook(e.specResult, res)
 	}
 	m.SpecExecutionEndingRequest.SpecResult = gauge.ConvertToProtoSpecResult(e.specResult)
 	e.pluginHandler.NotifyPlugins(m)
@@ -315,7 +315,7 @@ func (e *specExecutor) executeScenario(scenario *gauge.Scenario) (*result.Scenar
 			return nil, err
 		}
 
-		e.scenarioExecutor.execute(scenario, scenarioResult)
+		e.scenarioExecutor.Execute(scenario, scenarioResult)
 
 		if scenarioResult.ProtoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_SKIPPED {
 			e.specResult.ScenarioSkippedCount++

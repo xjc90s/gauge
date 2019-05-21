@@ -15,14 +15,14 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package item
 
 import (
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/plugin"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
 
@@ -85,7 +85,7 @@ func (e *stepExecutor) notifyBeforeStepHook(stepResult *result.StepResult) {
 	stepResult.ProtoStep.PreHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setStepFailure(e.currentExecutionInfo)
-		handleHookFailure(stepResult, res, result.AddPreHook)
+		result.AddPreHook(stepResult, res)
 	}
 	m.StepExecutionStartingRequest.StepResult = gauge.ConvertToProtoStepResult(stepResult)
 	e.pluginHandler.NotifyPlugins(m)
@@ -102,7 +102,7 @@ func (e *stepExecutor) notifyAfterStepHook(stepResult *result.StepResult) {
 	stepResult.ProtoStep.PostHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setStepFailure(e.currentExecutionInfo)
-		handleHookFailure(stepResult, res, result.AddPostHook)
+		result.AddPostHook(stepResult, res)
 	}
 	m.StepExecutionEndingRequest.StepResult = gauge.ConvertToProtoStepResult(stepResult)
 	e.pluginHandler.NotifyPlugins(m)

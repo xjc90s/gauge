@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package item
 
 import (
 	"fmt"
@@ -24,11 +24,11 @@ import (
 
 	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
 
@@ -55,7 +55,7 @@ func newScenarioExecutor(r runner.Runner, ph plugin.Handler, ei *gauge_messages.
 	}
 }
 
-func (e *scenarioExecutor) execute(i gauge.Item, r result.Result) {
+func (e *scenarioExecutor) Execute(i gauge.Item, r result.Result) {
 	scenario := i.(*gauge.Scenario)
 	scenarioResult := r.(*result.ScenarioResult)
 	scenarioResult.ProtoScenario.ExecutionStatus = gauge_messages.ExecutionStatus_PASSED
@@ -125,7 +125,7 @@ func (e *scenarioExecutor) notifyBeforeScenarioHook(scenarioResult *result.Scena
 	scenarioResult.ProtoScenario.PreHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setScenarioFailure(e.currentExecutionInfo)
-		handleHookFailure(scenarioResult, res, result.AddPreHook)
+		result.AddPreHook(scenarioResult, res)
 	}
 	message.ScenarioExecutionStartingRequest.ScenarioResult = gauge.ConvertToProtoScenarioResult(scenarioResult)
 	e.pluginHandler.NotifyPlugins(message)
@@ -139,7 +139,7 @@ func (e *scenarioExecutor) notifyAfterScenarioHook(scenarioResult *result.Scenar
 	scenarioResult.ProtoScenario.PostHookScreenshots = res.Screenshots
 	if res.GetFailed() {
 		setScenarioFailure(e.currentExecutionInfo)
-		handleHookFailure(scenarioResult, res, result.AddPostHook)
+		result.AddPostHook(scenarioResult, res)
 	}
 	message.ScenarioExecutionEndingRequest.ScenarioResult = gauge.ConvertToProtoScenarioResult(scenarioResult)
 	e.pluginHandler.NotifyPlugins(message)

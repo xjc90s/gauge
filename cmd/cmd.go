@@ -25,6 +25,7 @@ import (
 	"github.com/getgauge/gauge/config"
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution"
+	"github.com/getgauge/gauge/execution/item"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/order"
@@ -185,9 +186,9 @@ func initPackageFlags() {
 	reporter.MachineReadable = machineReadable
 	execution.MachineReadable = machineReadable
 	execution.ExecuteTags = tags
-	execution.SetTableRows(rows)
+	item.SetTableRows(rows)
 	validation.TableRows = rows
-	execution.NumberOfExecutionStreams = streams
+	item.NumberOfExecutionStreams = streams
 	execution.InParallel = parallel
 	execution.TagsToFilterForParallelRun = tagsToFilterForParallelRun
 	execution.Verbose = verbose
@@ -202,8 +203,8 @@ func initPackageFlags() {
 		execution.Strategy = execution.Eager
 	}
 	filter.ScenariosName = scenarios
-	execution.MaxRetriesCount = maxRetriesCount
-	execution.RetryOnlyTags = retryOnlyTags
+	item.MaxRetriesCount = maxRetriesCount
+	item.RetryOnlyTags = retryOnlyTags
 }
 
 var exit = func(err error, additionalText string) {

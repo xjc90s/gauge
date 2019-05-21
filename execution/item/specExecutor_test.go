@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package item
 
 import (
 	"fmt"
@@ -26,10 +26,10 @@ import (
 
 	er "github.com/getgauge/gauge/error"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/validation"
 	. "gopkg.in/check.v1"
 )

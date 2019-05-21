@@ -22,23 +22,18 @@ import (
 	"time"
 
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
+	"github.com/getgauge/gauge/execution/item"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/plugin"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
 
 // ExecuteTags holds the tags to filter the execution by
 var ExecuteTags = ""
-var tableRowsIndexes []int
-
-// SetTableRows is used to limit data driven execution to specific rows
-func SetTableRows(tableRows string) {
-	tableRowsIndexes = getDataTableRows(tableRows)
-}
 
 type simpleExecution struct {
 	manifest             *manifest.Manifest
@@ -127,7 +122,7 @@ func (e *simpleExecution) executeSpecs(sc *gauge.SpecCollection) (results []*res
 			if i == len(specs)-1 {
 				after = true
 			}
-			res := newSpecExecutor(spec, e.runner, e.pluginHandler, e.errMaps, e.stream).execute(before, preHookFailures == nil, after)
+			res := item.NewSpecExecutor(spec, e.runner, e.pluginHandler, e.errMaps, e.stream).Execute(before, preHookFailures == nil, after)
 			before = false
 			specResults = append(specResults, res)
 			preHookFailures = append(preHookFailures, res.GetPreHook()...)
@@ -154,7 +149,7 @@ func (e *simpleExecution) notifyBeforeSuite() {
 	e.suiteResult.PreHookMessages = res.Message
 	e.suiteResult.PreHookScreenshots = res.Screenshots
 	if res.GetFailed() {
-		handleHookFailure(e.suiteResult, res, result.AddPreHook)
+		result.AddPreHook(e.suiteResult, res)
 	}
 	m.ExecutionStartingRequest.SuiteResult = gauge.ConvertToProtoSuiteResult(e.suiteResult)
 	e.pluginHandler.NotifyPlugins(m)
@@ -167,7 +162,7 @@ func (e *simpleExecution) notifyAfterSuite() {
 	e.suiteResult.PostHookMessages = res.Message
 	e.suiteResult.PostHookScreenshots = res.Screenshots
 	if res.GetFailed() {
-		handleHookFailure(e.suiteResult, res, result.AddPostHook)
+		result.AddPostHook(e.suiteResult, res)
 	}
 	m.ExecutionEndingRequest.SuiteResult = gauge.ConvertToProtoSuiteResult(e.suiteResult)
 	e.pluginHandler.NotifyPlugins(m)
@@ -195,8 +190,4 @@ func (e *simpleExecution) notifyExecutionStop() {
 		KillProcessRequest: &gauge_messages.KillProcessRequest{}}
 	e.pluginHandler.NotifyPlugins(m)
 	e.pluginHandler.GracefullyKillPlugins()
-}
-
-func handleHookFailure(result result.Result, execResult *gauge_messages.ProtoExecutionResult, f func(result.Result, *gauge_messages.ProtoExecutionResult)) {
-	f(result, execResult)
 }

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package item
 
 import (
 	"path/filepath"
@@ -26,6 +26,12 @@ import (
 	"github.com/getgauge/gauge/parser"
 	. "gopkg.in/check.v1"
 )
+
+func Test(t *testing.T) { TestingT(t) }
+
+type MySuite struct{}
+
+var _ = Suite(&MySuite{})
 
 func (s *MySuite) TestResolveConceptToProtoConceptItem(c *C) {
 	conceptDictionary := gauge.NewConceptDictionary()

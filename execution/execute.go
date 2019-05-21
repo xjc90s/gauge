@@ -36,21 +36,13 @@ import (
 	"github.com/getgauge/gauge/plugin"
 
 	"github.com/getgauge/gauge/execution/event"
+	"github.com/getgauge/gauge/execution/item"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/manifest"
 	er "github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
-
-// Count of iterations
-var MaxRetriesCount int
-
-// Tags to filter specs/scenarios to retry
-var RetryOnlyTags string
-
-// NumberOfExecutionStreams shows the number of execution streams, in parallel execution.
-var NumberOfExecutionStreams int
 
 // InParallel if true executes the specs in parallel else in serial.
 var InParallel bool
@@ -63,14 +55,8 @@ var Verbose bool
 // MachineReadable indicates that the output is in json format
 var MachineReadable bool
 
-var ExecutionArgs []*gauge.ExecutionArg
-
 type suiteExecutor interface {
 	run() *er.SuiteResult
-}
-
-type executor interface {
-	execute(i gauge.Item, r er.Result)
 }
 
 type executionInfo struct {
@@ -97,7 +83,7 @@ func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handle
 		pluginHandler:   ph,
 		errMaps:         e,
 		inParallel:      p,
-		numberOfStreams: NumberOfExecutionStreams,
+		numberOfStreams: item.NumberOfExecutionStreams,
 		tagsToFilter:    TagsToFilterForParallelRun,
 		stream:          stream,
 	}
