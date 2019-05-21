@@ -26,6 +26,8 @@ import (
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution"
 	"github.com/getgauge/gauge/execution/item"
+	pe "github.com/getgauge/gauge/execution/parallel"
+	"github.com/getgauge/gauge/execution/simple"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/order"
@@ -185,14 +187,14 @@ func initPackageFlags() {
 	reporter.Verbose = verbose
 	reporter.MachineReadable = machineReadable
 	execution.MachineReadable = machineReadable
-	execution.ExecuteTags = tags
+	simple.ExecuteTags = tags
 	item.SetTableRows(rows)
 	validation.TableRows = rows
 	item.NumberOfExecutionStreams = streams
 	execution.InParallel = parallel
-	execution.TagsToFilterForParallelRun = tagsToFilterForParallelRun
-	execution.Verbose = verbose
-	execution.Strategy = strategy
+	pe.TagsToFilterForParallelRun = tagsToFilterForParallelRun
+	pe.Verbose = verbose
+	pe.Strategy = strategy
 	filter.ExecuteTags = tags
 	order.Sorted = sort
 	filter.Distribute = group
@@ -200,7 +202,7 @@ func initPackageFlags() {
 	reporter.NumberOfExecutionStreams = streams
 	validation.HideSuggestion = hideSuggestion
 	if group != -1 {
-		execution.Strategy = execution.Eager
+		pe.Strategy = pe.Eager
 	}
 	filter.ScenariosName = scenarios
 	item.MaxRetriesCount = maxRetriesCount

@@ -33,74 +33,28 @@
 package execution
 
 import (
-	"github.com/getgauge/gauge/plugin"
-
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/execution/item"
+	"github.com/getgauge/gauge/execution/parallel"
+	"github.com/getgauge/gauge/execution/simple"
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/logger"
-	"github.com/getgauge/gauge/manifest"
-	er "github.com/getgauge/gauge/result"
+	"github.com/getgauge/gauge/result"
+
 	"github.com/getgauge/gauge/runner"
 )
 
 // InParallel if true executes the specs in parallel else in serial.
 var InParallel bool
 
-var TagsToFilterForParallelRun string
-
-// Verbose if true prints additional details about the execution
-var Verbose bool
-
 // MachineReadable indicates that the output is in json format
 var MachineReadable bool
 
-type suiteExecutor interface {
-	run() *er.SuiteResult
-}
-
-type executionInfo struct {
-	manifest        *manifest.Manifest
-	specs           *gauge.SpecCollection
-	runner          runner.Runner
-	pluginHandler   plugin.Handler
-	errMaps         *gauge.BuildErrors
-	inParallel      bool
-	numberOfStreams int
-	tagsToFilter    string
-	stream          int
-}
-
-func newExecutionInfo(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, p bool, stream int) *executionInfo {
-	m, err := manifest.ProjectManifest()
-	if err != nil {
-		logger.Fatalf(true, err.Error())
-	}
-	return &executionInfo{
-		manifest:        m,
-		specs:           s,
-		runner:          r,
-		pluginHandler:   ph,
-		errMaps:         e,
-		inParallel:      p,
-		numberOfStreams: item.NumberOfExecutionStreams,
-		tagsToFilter:    TagsToFilterForParallelRun,
-		stream:          stream,
-	}
-}
-
 // ExecuteSpecs : Check for updates, validates the specs (by invoking the respective language runners), initiates the registry which is needed for console reporting, execution API and Rerunning of specs
 // and finally saves the execution result as binary in .gauge folder.
-var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) *er.SuiteResult {
+var ExecuteSpecs = func(res *gauge.ValidationResult, r runner.Runner, specDirs []string) *result.SuiteResult {
 	event.InitRegistry()
-	ei := newExecutionInfo(res.SpecCollection, r, nil, res.ErrMap, InParallel, 0)
-
-	return newExecution(ei).run()
-}
-
-func newExecution(executionInfo *executionInfo) suiteExecutor {
-	if executionInfo.inParallel {
-		return newParallelExecution(executionInfo)
+	if InParallel {
+		return parallel.NewExecution(res.SpecCollection, r, nil, res.ErrMap).Run()
+	} else {
+		return simple.NewExecution(res.SpecCollection, r, nil, res.ErrMap, 0, true).Run()
 	}
-	return newSimpleExecution(executionInfo, true)
 }

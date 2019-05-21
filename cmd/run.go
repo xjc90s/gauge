@@ -25,6 +25,7 @@ import (
 
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/item"
+	pe "github.com/getgauge/gauge/execution/parallel"
 	"github.com/getgauge/gauge/reporter"
 	"github.com/getgauge/gauge/result"
 
@@ -313,13 +314,13 @@ func validateFlags() error {
 	if item.NumberOfExecutionStreams < 1 {
 		return fmt.Errorf("invalid input(%s) to --n flag", strconv.Itoa(item.NumberOfExecutionStreams))
 	}
-	if !isValidStrategy(execution.Strategy) {
-		return fmt.Errorf("invalid input(%s) to --strategy flag", execution.Strategy)
+	if !isValidStrategy(pe.Strategy) {
+		return fmt.Errorf("invalid input(%s) to --strategy flag", pe.Strategy)
 	}
 	return nil
 }
 
 func isValidStrategy(strategy string) bool {
 	strategy = strings.ToLower(strategy)
-	return strategy == execution.Lazy || strategy == execution.Eager
+	return strategy == pe.Lazy || strategy == pe.Eager
 }

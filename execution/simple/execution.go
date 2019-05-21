@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package simple
 
 import (
 	"fmt"
@@ -29,11 +29,16 @@ import (
 	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/result"
+	er "github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
 
 // ExecuteTags holds the tags to filter the execution by
 var ExecuteTags = ""
+
+type suiteExecutor interface {
+	Run() *er.SuiteResult
+}
 
 type simpleExecution struct {
 	manifest             *manifest.Manifest
@@ -47,28 +52,34 @@ type simpleExecution struct {
 	stream               int
 }
 
-func newSimpleExecution(executionInfo *executionInfo, combineDataTableSpecs bool) *simpleExecution {
+func NewExecution(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors, stream int, combineDataTableSpecs bool) *simpleExecution {
+	m, err := manifest.ProjectManifest()
+	if err != nil {
+		logger.Fatalf(true, err.Error())
+	}
+
+	var sc = s
 	if combineDataTableSpecs {
-		executionInfo.specs = gauge.NewSpecCollection(executionInfo.specs.Specs(), true)
+		sc = gauge.NewSpecCollection(s.Specs(), true)
 	}
 	return &simpleExecution{
-		manifest:       executionInfo.manifest,
-		specCollection: executionInfo.specs,
-		runner:         executionInfo.runner,
-		pluginHandler:  executionInfo.pluginHandler,
-		errMaps:        executionInfo.errMaps,
-		stream:         executionInfo.stream,
+		manifest:       m,
+		specCollection: sc,
+		runner:         r,
+		pluginHandler:  ph,
+		errMaps:        e,
+		stream:         stream,
 	}
 }
 
-func (e *simpleExecution) run() *result.SuiteResult {
+func (e *simpleExecution) Run() *result.SuiteResult {
 	e.start()
-	e.execute()
+	e.Execute()
 	e.finish()
 	return e.suiteResult
 }
 
-func (e *simpleExecution) execute() {
+func (e *simpleExecution) Execute() {
 	e.suiteResult = result.NewSuiteResult(ExecuteTags, e.startTime)
 	setResultMeta := func() {
 		e.suiteResult.UpdateExecTime(e.startTime)
@@ -92,6 +103,10 @@ func (e *simpleExecution) execute() {
 	setResultMeta()
 }
 
+func (e *simpleExecution) Result() *result.SuiteResult {
+	return e.suiteResult
+}
+
 func (e *simpleExecution) start() {
 	e.startTime = time.Now()
 	event.Notify(event.NewExecutionEvent(event.SuiteStart, nil, nil, 0, gauge_messages.ExecutionInfo{}))
@@ -99,7 +114,7 @@ func (e *simpleExecution) start() {
 }
 
 func (e *simpleExecution) finish() {
-	e.suiteResult = mergeDataTableSpecResults(e.suiteResult)
+	e.suiteResult = result.MergeDataTableSpecResults(e.suiteResult)
 	event.Notify(event.NewExecutionEvent(event.SuiteEnd, nil, e.suiteResult, 0, gauge_messages.ExecutionInfo{}))
 	e.notifyExecutionResult()
 	e.stopAllPlugins()

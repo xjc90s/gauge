@@ -15,19 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package result
 
 import (
 	"time"
 
 	"strings"
 
-	"github.com/getgauge/gauge/result"
 	m "github.com/getgauge/gauge/gauge_messages"
 )
 
-func mergeDataTableSpecResults(sResult *result.SuiteResult) *result.SuiteResult {
-	suiteRes := result.NewSuiteResult(sResult.Tags, time.Now())
+func MergeDataTableSpecResults(sResult *SuiteResult) *SuiteResult {
+	suiteRes := NewSuiteResult(sResult.Tags, time.Now())
 	suiteRes.IsFailed = sResult.IsFailed
 	suiteRes.ExecutionTime = sResult.ExecutionTime
 	suiteRes.PostSuite = sResult.PostSuite
@@ -41,7 +40,7 @@ func mergeDataTableSpecResults(sResult *result.SuiteResult) *result.SuiteResult 
 	suiteRes.PostHookMessages = append(suiteRes.PostHookMessages, sResult.PostHookMessages...)
 	suiteRes.PreHookScreenshots = append(suiteRes.PreHookScreenshots, sResult.PreHookScreenshots...)
 	suiteRes.PostHookScreenshots = append(suiteRes.PostHookScreenshots, sResult.PostHookScreenshots...)
-	combinedResults := make(map[string][]*result.SpecResult)
+	combinedResults := make(map[string][]*SpecResult)
 	for _, res := range sResult.SpecResults {
 		fileName := res.ProtoSpec.GetFileName()
 		combinedResults[fileName] = append(combinedResults[fileName], res)
@@ -61,8 +60,8 @@ func mergeDataTableSpecResults(sResult *result.SuiteResult) *result.SuiteResult 
 	return suiteRes
 }
 
-func mergeResults(results []*result.SpecResult) *result.SpecResult {
-	specResult := &result.SpecResult{ProtoSpec: &m.ProtoSpec{IsTableDriven: true}}
+func mergeResults(results []*SpecResult) *SpecResult {
+	specResult := &SpecResult{ProtoSpec: &m.ProtoSpec{IsTableDriven: true}}
 	var scnResults []*m.ProtoItem
 	table := &m.ProtoTable{}
 	dataTableScnResults := make(map[string][]*m.ProtoTableDrivenScenario)
@@ -94,9 +93,9 @@ func mergeResults(results []*result.SpecResult) *result.SpecResult {
 		addHookFailure(table, res.GetPreHook(), specResult.AddPreHook)
 		addHookFailure(table, res.GetPostHook(), specResult.AddPostHook)
 	}
-	if InParallel {
-		specResult.ExecutionTime = max
-	}
+	// if InParallel {
+	specResult.ExecutionTime = max
+	// }
 	aggregateDataTableScnStats(dataTableScnResults, specResult)
 	specResult.ProtoSpec.FileName = results[0].ProtoSpec.FileName
 	specResult.ProtoSpec.Tags = results[0].ProtoSpec.Tags
@@ -112,7 +111,7 @@ func addHookFailure(table *m.ProtoTable, f []*m.ProtoHookFailure, add func(...*m
 	add(f...)
 }
 
-func getItems(table *m.ProtoTable, scnResults []*m.ProtoItem, results []*result.SpecResult) (items []*m.ProtoItem) {
+func getItems(table *m.ProtoTable, scnResults []*m.ProtoItem, results []*SpecResult) (items []*m.ProtoItem) {
 	index := 0
 	for _, item := range results[0].ProtoSpec.Items {
 		switch item.ItemType {
@@ -129,7 +128,7 @@ func getItems(table *m.ProtoTable, scnResults []*m.ProtoItem, results []*result.
 	return
 }
 
-func aggregateDataTableScnStats(results map[string][]*m.ProtoTableDrivenScenario, specResult *result.SpecResult) {
+func aggregateDataTableScnStats(results map[string][]*m.ProtoTableDrivenScenario, specResult *SpecResult) {
 	for _, dResult := range results {
 		for _, res := range dResult {
 			isTableIndicesExcluded := false
@@ -150,7 +149,7 @@ func aggregateDataTableScnStats(results map[string][]*m.ProtoTableDrivenScenario
 	}
 }
 
-func modifySpecStats(scn *m.ProtoScenario, specRes *result.SpecResult) {
+func modifySpecStats(scn *m.ProtoScenario, specRes *SpecResult) {
 	switch scn.ExecutionStatus {
 	case m.ExecutionStatus_SKIPPED:
 		specRes.ScenarioSkippedCount++

@@ -15,14 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package result
 
 import (
 	"testing"
 
 	"reflect"
 
-	"github.com/getgauge/gauge/result"
 	gm "github.com/getgauge/gauge/gauge_messages"
 )
 
@@ -44,7 +43,7 @@ var statsTests = []struct {
 
 func TestModifySpecStats(t *testing.T) {
 	for _, test := range statsTests {
-		res := &result.SpecResult{}
+		res := &SpecResult{}
 
 		modifySpecStats(&gm.ProtoScenario{ExecutionStatus: test.status}, res)
 		got := stat{failed: res.ScenarioFailedCount, skipped: res.ScenarioSkippedCount, total: res.ScenarioCount}
@@ -56,7 +55,7 @@ func TestModifySpecStats(t *testing.T) {
 }
 
 func TestAggregateDataTableScnStats(t *testing.T) {
-	res := &result.SpecResult{}
+	res := &SpecResult{}
 	scns := map[string][]*gm.ProtoTableDrivenScenario{
 		"heading1": []*gm.ProtoTableDrivenScenario{
 			{Scenario: &gm.ProtoScenario{ExecutionStatus: gm.ExecutionStatus_PASSED}},
@@ -85,7 +84,7 @@ func TestAggregateDataTableScnStats(t *testing.T) {
 }
 
 func TestMergeResults(t *testing.T) {
-	got := mergeResults([]*result.SpecResult{
+	got := mergeResults([]*SpecResult{
 		{
 			ProtoSpec: &gm.ProtoSpec{
 				PreHookFailures: []*gm.ProtoHookFailure{{StackTrace: "stacktrace"}},
@@ -120,7 +119,7 @@ func TestMergeResults(t *testing.T) {
 			}, ExecutionTime: int64(2),
 		},
 	})
-	want := &result.SpecResult{
+	want := &SpecResult{
 		ProtoSpec: &gm.ProtoSpec{
 			PreHookFailures: []*gm.ProtoHookFailure{{StackTrace: "stacktrace"}, {StackTrace: "stacktrace1", TableRowIndex: 1}},
 			SpecHeading:     "heading", FileName: "filename", Tags: []string{"tags"},
@@ -151,7 +150,7 @@ func TestMergeResults(t *testing.T) {
 }
 
 func TestMergeSkippedResults(t *testing.T) {
-	got := mergeResults([]*result.SpecResult{
+	got := mergeResults([]*SpecResult{
 		{
 			ProtoSpec: &gm.ProtoSpec{
 				PreHookFailures: []*gm.ProtoHookFailure{{StackTrace: "stacktrace"}},
@@ -188,7 +187,7 @@ func TestMergeSkippedResults(t *testing.T) {
 			Skipped: true,
 		},
 	})
-	want := &result.SpecResult{
+	want := &SpecResult{
 		ProtoSpec: &gm.ProtoSpec{
 			PreHookFailures: []*gm.ProtoHookFailure{{StackTrace: "stacktrace"}, {StackTrace: "stacktrace1", TableRowIndex: 1}},
 			SpecHeading:     "heading", FileName: "filename", Tags: []string{"tags"},
@@ -219,9 +218,9 @@ func TestMergeSkippedResults(t *testing.T) {
 }
 
 func TestMergeResultsExecutionTimeInParallel(t *testing.T) {
-	InParallel = true
+	// InParallel = true
 
-	got := mergeResults([]*result.SpecResult{
+	got := mergeResults([]*SpecResult{
 		{
 			ProtoSpec: &gm.ProtoSpec{
 				SpecHeading: "heading", FileName: "filename", Tags: []string{"tags"},
@@ -235,7 +234,7 @@ func TestMergeResultsExecutionTimeInParallel(t *testing.T) {
 	})
 
 	want := int64(2)
-	InParallel = false
+	// InParallel = false
 
 	if !reflect.DeepEqual(got.ExecutionTime, want) {
 		t.Errorf("Execution time in parallel data table spec results.\n\tWant: %v\n\tGot: %v", want, got.ExecutionTime)
@@ -243,11 +242,11 @@ func TestMergeResultsExecutionTimeInParallel(t *testing.T) {
 }
 
 func TestMergeDataTableSpecResults(t *testing.T) {
-	res := &result.SuiteResult{
+	res := &SuiteResult{
 		Environment: "env",
 		ProjectName: "name",
 		Tags:        "tags",
-		SpecResults: []*result.SpecResult{
+		SpecResults: []*SpecResult{
 			{
 				ProtoSpec: &gm.ProtoSpec{
 					SpecHeading: "heading", FileName: "filename", Tags: []string{"tags"},
@@ -258,13 +257,13 @@ func TestMergeDataTableSpecResults(t *testing.T) {
 			},
 		},
 	}
-	got := mergeDataTableSpecResults(res)
+	got := MergeDataTableSpecResults(res)
 
-	want := &result.SuiteResult{
+	want := &SuiteResult{
 		Environment: "env",
 		ProjectName: "name",
 		Tags:        "tags",
-		SpecResults: []*result.SpecResult{
+		SpecResults: []*SpecResult{
 			{
 				ProtoSpec: &gm.ProtoSpec{
 					SpecHeading: "heading", FileName: "filename", Tags: []string{"tags"},
@@ -282,7 +281,7 @@ func TestMergeDataTableSpecResults(t *testing.T) {
 
 func TestGetItems(t *testing.T) {
 	table := &gm.ProtoTable{Headers: &gm.ProtoTableRow{Cells: []string{"a"}}}
-	res := []*result.SpecResult{{
+	res := []*SpecResult{{
 		ProtoSpec: &gm.ProtoSpec{
 			Items: []*gm.ProtoItem{
 				{ItemType: gm.ProtoItem_Table},

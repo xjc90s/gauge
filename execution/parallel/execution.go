@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-package execution
+package parallel
 
 import (
 	"fmt"
@@ -25,6 +25,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getgauge/gauge/execution/item"
+	"github.com/getgauge/gauge/execution/simple"
+
 	"os"
 
 	"github.com/getgauge/common"
@@ -32,7 +35,6 @@ import (
 	"github.com/getgauge/gauge/conn"
 	"github.com/getgauge/gauge/env"
 	"github.com/getgauge/gauge/execution/event"
-	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/filter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
@@ -40,6 +42,7 @@ import (
 	"github.com/getgauge/gauge/manifest"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/reporter"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 )
 
@@ -52,6 +55,11 @@ const Eager string = "eager"
 // Lazy is a parallelization strategy for execution. In this case tests assignment will be dynamic during execution, i.e. assign the next spec in line to the stream that has completed it’s previous execution and is waiting for more work.
 const Lazy string = "lazy"
 
+var TagsToFilterForParallelRun string
+
+// Verbose if true prints additional details about the execution
+var Verbose bool
+
 type parallelExecution struct {
 	wg                       sync.WaitGroup
 	manifest                 *manifest.Manifest
@@ -61,20 +69,22 @@ type parallelExecution struct {
 	runner                   runner.Runner
 	suiteResult              *result.SuiteResult
 	numberOfExecutionStreams int
-	tagsToFilter             string
 	errMaps                  *gauge.BuildErrors
 	startTime                time.Time
 }
 
-func newParallelExecution(e *executionInfo) *parallelExecution {
+func NewExecution(s *gauge.SpecCollection, r runner.Runner, ph plugin.Handler, e *gauge.BuildErrors) *parallelExecution {
+	m, err := manifest.ProjectManifest()
+	if err != nil {
+		logger.Fatalf(true, err.Error())
+	}
 	return &parallelExecution{
-		manifest:                 e.manifest,
-		specCollection:           e.specs,
-		runner:                   e.runner,
-		pluginHandler:            e.pluginHandler,
-		numberOfExecutionStreams: e.numberOfStreams,
-		tagsToFilter:             e.tagsToFilter,
-		errMaps:                  e.errMaps,
+		manifest:                 m,
+		specCollection:           s,
+		runner:                   r,
+		pluginHandler:            ph,
+		numberOfExecutionStreams: item.NumberOfExecutionStreams,
+		errMaps:                  e,
 	}
 }
 
@@ -106,13 +116,13 @@ func (e *parallelExecution) start() {
 	e.pluginHandler = plugin.StartPlugins(e.manifest)
 }
 
-func (e *parallelExecution) run() *result.SuiteResult {
+func (e *parallelExecution) Run() *result.SuiteResult {
 	e.start()
 	var res []*result.SuiteResult
-	if env.AllowFilteredParallelExecution() && e.tagsToFilter != "" {
-		p, s := filter.FilterSpecForParallelRun(e.specCollection.Specs(), e.tagsToFilter)
+	if env.AllowFilteredParallelExecution() && TagsToFilterForParallelRun != "" {
+		p, s := filter.FilterSpecForParallelRun(e.specCollection.Specs(), TagsToFilterForParallelRun)
 		if Verbose {
-			printAdditionalExecutionInfo(p, s, e.tagsToFilter)
+			printAdditionalExecutionInfo(p, s, TagsToFilterForParallelRun)
 		}
 		if len(s) > 0 {
 			logger.Infof(true, "Executing %d specs in serial.", len(s))
@@ -236,11 +246,10 @@ func (e *parallelExecution) startRunner(s *gauge.SpecCollection, stream int) (ru
 }
 
 func (e *parallelExecution) startSpecsExecutionWithRunner(s *gauge.SpecCollection, resChan chan *result.SuiteResult, runner runner.Runner, stream int) {
-	executionInfo := newExecutionInfo(s, runner, e.pluginHandler, e.errMaps, false, stream)
-	se := newSimpleExecution(executionInfo, false)
-	se.execute()
+	se := simple.NewExecution(s, runner, e.pluginHandler, e.errMaps, stream, false)
+	se.Execute()
 	runner.Kill()
-	resChan <- se.suiteResult
+	resChan <- se.Result()
 }
 
 func (e *parallelExecution) executeSpecsInSerial(s *gauge.SpecCollection) *result.SuiteResult {
@@ -248,15 +257,14 @@ func (e *parallelExecution) executeSpecsInSerial(s *gauge.SpecCollection) *resul
 	if err != nil {
 		return &result.SuiteResult{UnhandledErrors: err}
 	}
-	executionInfo := newExecutionInfo(s, runner, e.pluginHandler, e.errMaps, false, 1)
-	se := newSimpleExecution(executionInfo, false)
-	se.execute()
+	se := simple.NewExecution(s, runner, e.pluginHandler, e.errMaps, 1, false)
+	se.Execute()
 	runner.Kill()
-	return se.suiteResult
+	return se.Result()
 }
 
 func (e *parallelExecution) finish() {
-	e.suiteResult = mergeDataTableSpecResults(e.suiteResult)
+	e.suiteResult = result.MergeDataTableSpecResults(e.suiteResult)
 	event.Notify(event.NewExecutionEvent(event.SuiteEnd, nil, e.suiteResult, 0, gauge_messages.ExecutionInfo{}))
 	message := &gauge_messages.Message{
 		MessageType: gauge_messages.Message_SuiteExecutionResult,
@@ -269,7 +277,7 @@ func (e *parallelExecution) finish() {
 }
 
 func (e *parallelExecution) aggregateResults(suiteResults []*result.SuiteResult) {
-	r := result.NewSuiteResult(ExecuteTags, e.startTime)
+	r := result.NewSuiteResult(simple.ExecuteTags, e.startTime)
 	for _, result := range suiteResults {
 		r.SpecsFailedCount += result.SpecsFailedCount
 		r.SpecResults = append(r.SpecResults, result.SpecResults...)
