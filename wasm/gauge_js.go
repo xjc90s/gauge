@@ -15,21 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with Gauge.  If not, see <http://www.gnu.org/licenses/>.
 
-// +build js
-
 package main
 
 import (
 	"fmt"
 	"net"
+	"strings"
 	"syscall/js"
 
-	"github.com/getgauge/gauge/gauge_messages"
-
 	"github.com/getgauge/gauge/gauge"
-	"github.com/getgauge/gauge/runner"
-
+	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/validation"
 )
 
@@ -41,31 +38,38 @@ func keepAlive() {
 	}
 }
 
-func parse() {
+func parse() *gauge.Specification {
 	document := js.Global().Get("document")
 	specEl := document.Call("getElementById", "specText")
 	content := specEl.Get("innerText").String()
 	s, r := new(parser.SpecParser).ParseSpecText(content, "browser")
-	console := js.Global().Get("console")
 	if !r.Ok {
 		for _, e := range r.Errors() {
-			console.Call("error", e)
+			js.Global().Get("console").Call("error", e)
 		}
-		return
+		return nil
 	}
+	return s
+}
+
+func validate(s *gauge.Specification) {
+	js.Global().Call("parse")
 	vErrs := validation.NewValidator([]*gauge.Specification{s}, newInBrowserRunner(), gauge.NewConceptDictionary()).Validate()
 	for _, e := range vErrs[s] {
-		console.Call("error", e.Error())
+		js.Global().Get("console").Call("error", e.Error())
 	}
-
 }
 
 func main() {
+	document := js.Global().Get("document")
 	cb := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		parse()
+		console := document.Call("getElementById", "out")
+		console.Set("innerHTML", "")
+		s := parse()
+		validate(s)
 		return nil
 	})
-	document := js.Global().Get("document")
+
 	parseButton := document.Call("getElementById", "parseButton")
 	parseButton.Call("addEventListener", "click", cb)
 
@@ -99,10 +103,39 @@ func (r inBrowserRunner) Pid() int {
 }
 
 func (r inBrowserRunner) ExecuteAndGetStatus(m *gauge_messages.Message) *gauge_messages.ProtoExecutionResult {
-	fmt.Printf("received %s\n", m.MessageType)
-	return &gauge_messages.ProtoExecutionResult{}
+	return nil
 }
 
 func (r inBrowserRunner) ExecuteMessageWithTimeout(m *gauge_messages.Message) (*gauge_messages.Message, error) {
-	return &gauge_messages.Message{}, nil
+	if m.MessageType == gauge_messages.Message_StepValidateRequest {
+		implemented := js.Global().Call("stepImplemented", m.StepValidateRequest.StepText).Bool()
+		if !implemented {
+			return &gauge_messages.Message{
+				MessageId:   m.MessageId,
+				MessageType: gauge_messages.Message_StepValidateResponse,
+				StepValidateResponse: &gauge_messages.StepValidateResponse{
+					ErrorType: gauge_messages.StepValidateResponse_STEP_IMPLEMENTATION_NOT_FOUND,
+				},
+			}, nil
+		}
+		impl := js.Global().Call("stepImplementationLocations", m.StepValidateRequest.StepText).String()
+		impls := strings.Split(impl, "|")
+		if len(impls) > 1 {
+			return &gauge_messages.Message{
+				MessageId:   m.MessageId,
+				MessageType: gauge_messages.Message_StepValidateResponse,
+				StepValidateResponse: &gauge_messages.StepValidateResponse{
+					ErrorType:    gauge_messages.StepValidateResponse_DUPLICATE_STEP_IMPLEMENTATION,
+					ErrorMessage: fmt.Sprintf("Duplicate step implementations at: %s", impls),
+				},
+			}, nil
+
+		}
+	}
+	return &gauge_messages.Message{
+		MessageId:            m.MessageId,
+		MessageType:          gauge_messages.Message_StepValidateResponse,
+		StepValidateResponse: &gauge_messages.StepValidateResponse{IsValid: true},
+	}, nil
+
 }

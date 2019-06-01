@@ -13,13 +13,39 @@
 			WebAssembly.instantiateStreaming(fetch("gauge.wasm"), go.importObject).then((result) => {
 				go.run(result.instance);
 			});
+
+			var stepRegistry = {};
+			var generalize = (s) => s.replace(/(<.*?>)|(".*?")/g, "{}");
+			const caller_file = "step_implementation.js";
+			var step = (text, f) => { 
+				var s = stepRegistry[generalize(text)];
+				var caller_line_no = (new Error).stack.split('\n')[1].split('> Function').pop();
+				var caller_line = `${caller_file}${caller_line_no}`;
+				if(s){
+					s.push({func: f, location: caller_line})
+				} else{
+					stepRegistry[generalize(text)] = [{func: f, location: caller_line}]; 
+				}
+			};
+			var beforeScenario = (f, opts) => {};
+			var stepImplemented = (s) => generalize(s) in stepRegistry;
+			var stepImplementationLocations = (s) => stepRegistry[s].map(i => i.location).join('|');
+			var parse = () => {
+				try {
+					new Function(document.getElementById('implementation').innerText)();	
+				} catch (error) {
+					console.error(error);
+				}
+			};
 		</script>
 		<style>
 			.container{
 				display: flex;
+				height: 70%;
 			}
 			pre {
 				width: 100%;
+				max-height: 100%;
 			}
 			.dark-block {
 				background-color: #333;
@@ -69,10 +95,57 @@ Here's a step that takes a table
 	|Rhythm|0          |
 				</code>
 			</pre>
-			<pre class="dark-block"><code id="out"></code></pre>
+			<pre>
+				<code class="language-js" contenteditable="true" id="implementation">
+/* globals gauge*/
+
+&quot;use strict&quot;;
+
+//var assert = require(&quot;assert&quot;);
+
+var vowels = [&quot;a&quot;, &quot;e&quot;, &quot;i&quot;, &quot;o&quot;, &quot;u&quot;];
+
+var numberOfVowels = function (word) {
+	var vowelArr = word.split(&quot;&quot;).filter(function (elem) { return vowels.indexOf(elem) &gt; -1; });
+	return vowelArr.length;
+};
+
+// --------------------------
+// Gauge step implementations
+// --------------------------
+
+step(&quot;Vowels in English language are &lt;vowels&gt;.&quot;, function(vowelsGiven) {
+	// assert.equal(vowelsGiven, vowels.join(&quot;&quot;));
+});
+
+step(&quot;The word &lt;word&gt; has &lt;number&gt; vowels.&quot;, function(word, number) {
+	// assert.equal(number, numberOfVowels(word));
+});
+
+step(&quot;Almost all words have vowels &lt;table&gt;&quot;, function(table) {
+	table.rows.forEach(function (row) {
+	// assert.equal(numberOfVowels(row.cells[0]), parseInt(row.cells[1]));
+	});
+});
+
+// ---------------
+// Execution Hooks
+// ---------------
+
+beforeScenario(function () {
+	// assert.equal(vowels.join(&quot;&quot;), &quot;aeiou&quot;);
+});
+
+beforeScenario(function () {
+	assert.equal(vowels[0], &quot;a&quot;);
+}, { tags: [ &quot;single word&quot; ]});
+											
+				</code>
+			</pre>
 		</div>
+		<pre class="dark-block"><code id="out"></code></pre>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/prism.min.js"></script>
-		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-bash.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-javascript.min.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-markdown.min.js"></script>
 	</body>
 </html>
