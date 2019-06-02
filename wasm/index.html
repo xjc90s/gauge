@@ -32,11 +32,19 @@
 			var stepImplementationLocations = (s) => stepRegistry[s].map(i => i.location).join('|');
 			var parse = () => {
 				try {
+					stepRegistry = {};
 					new Function(document.getElementById('implementation').innerText)();	
 				} catch (error) {
 					console.error(error);
 				}
 			};
+			var execute = (s, params) => {
+				try {
+					stepRegistry[s][0].func.apply({}, JSON.parse(params).map(x => x.kind === 'table' ? x.table : x.value));					
+				} catch (error) {
+					return error
+				}
+			}
 		</script>
 		<style>
 			.container{

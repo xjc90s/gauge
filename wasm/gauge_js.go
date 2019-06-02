@@ -18,14 +18,22 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
 	"syscall/js"
 
+	"github.com/getgauge/gauge/reporter"
+
+	"github.com/getgauge/gauge/execution/event"
+	"github.com/getgauge/gauge/execution/item"
+	"github.com/getgauge/gauge/plugin"
+
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/resolver"
 	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/validation"
 )
@@ -52,9 +60,10 @@ func parse() *gauge.Specification {
 	return s
 }
 
-func validate(s *gauge.Specification) {
+func validate(s *gauge.Specification, r runner.Runner) {
 	js.Global().Call("parse")
-	vErrs := validation.NewValidator([]*gauge.Specification{s}, newInBrowserRunner(), gauge.NewConceptDictionary()).Validate()
+	specs := []*gauge.Specification{s}
+	vErrs := validation.NewValidator(specs, r, gauge.NewConceptDictionary()).Validate()
 	for _, e := range vErrs[s] {
 		js.Global().Get("console").Call("error", e.Error())
 	}
@@ -66,7 +75,16 @@ func main() {
 		console := document.Call("getElementById", "out")
 		console.Set("innerHTML", "")
 		s := parse()
-		validate(s)
+		r := newInBrowserRunner()
+		validate(s, r)
+		resolver.GetResolvedDataTablerows(s.DataTable.Table)
+		item.MaxRetriesCount = 1
+		reporter.SimpleConsoleOutput = true
+		event.AddListener(reporter.ListenExecutionEvents)
+		eRes := item.NewSpecExecutor(s, r, &plugin.GaugePlugins{}, gauge.NewBuildErrors(), 1).Execute(false, true, false)
+		executed := eRes.ScenarioCount - eRes.ScenarioSkippedCount
+		passed := executed - eRes.ScenarioFailedCount
+		fmt.Printf("Scenarios:\t%d executed\t%d passed\t%d failed\t%d skipped\n", executed, passed, eRes.ScenarioFailedCount, eRes.ScenarioSkippedCount)
 		return nil
 	})
 
@@ -103,6 +121,48 @@ func (r inBrowserRunner) Pid() int {
 }
 
 func (r inBrowserRunner) ExecuteAndGetStatus(m *gauge_messages.Message) *gauge_messages.ProtoExecutionResult {
+	type table struct {
+		Headers []string   `json:"headers"`
+		Rows    [][]string `json:"rows"`
+	}
+
+	type param struct {
+		Kind  string `json:"kind"`
+		Value string `json:"value"`
+		Table table  `json:"table"`
+	}
+
+	switch m.MessageType {
+	case gauge_messages.Message_ScenarioExecutionStarting,
+		gauge_messages.Message_ScenarioExecutionEnding,
+		gauge_messages.Message_StepExecutionStarting,
+		gauge_messages.Message_StepExecutionEnding:
+		return &gauge_messages.ProtoExecutionResult{}
+	case gauge_messages.Message_ExecuteStep:
+		params := []param{}
+		for _, p := range m.ExecuteStepRequest.Parameters {
+			if p.ParameterType == gauge_messages.Parameter_Table {
+				t := table{Headers: p.Table.Headers.Cells, Rows: make([][]string, 0)}
+				for _, r := range p.Table.Rows {
+					t.Rows = append(t.Rows, r.Cells)
+				}
+				params = append(params, param{Kind: "table", Table: t})
+			} else {
+				params = append(params, param{Kind: "static", Value: p.Value})
+			}
+		}
+		b, err := json.Marshal(params)
+		if err != nil {
+			js.Global().Get("console").Call("error", err.Error())
+			return &gauge_messages.ProtoExecutionResult{Failed: true, ErrorMessage: err.Error(), ErrorType: gauge_messages.ProtoExecutionResult_VERIFICATION}
+		}
+		jsErr := js.Global().Call("execute", m.ExecuteStepRequest.ParsedStepText, string(b))
+		fmt.Println(jsErr)
+		if jsErr != js.Undefined() {
+			return &gauge_messages.ProtoExecutionResult{Failed: true, ErrorMessage: jsErr.String(), ErrorType: gauge_messages.ProtoExecutionResult_VERIFICATION}
+		}
+		return &gauge_messages.ProtoExecutionResult{}
+	}
 	return nil
 }
 
