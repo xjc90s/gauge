@@ -5,7 +5,7 @@
 		<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-coy.min.css">
 		<script>
 			var console = {
-				log: (s) => document.getElementById('out').innerHTML += `> [LOG] ${s}\n`,
+				log: (s) => document.getElementById('out').innerHTML += `> ${s}\n`,
 				warn: (s) => document.getElementById('out').innerHTML += `> [WARN] ${s}\n`,
 				error: (s) => document.getElementById('out').innerHTML += `> [ERROR] ${s}\n`,
 			};
@@ -65,7 +65,7 @@
 	</head>
 	<body>
 		<header>
-			<input type="button" id="parseButton" value="Parse"></input>
+			<input type="button" id="runButton" value="Run"></input>
 		</header>
 		<div class="container">
 			<pre>	
@@ -145,7 +145,7 @@ beforeScenario(function () {
 });
 
 beforeScenario(function () {
-	assert.equal(vowels[0], &quot;a&quot;);
+	// assert.equal(vowels[0], &quot;a&quot;);
 }, { tags: [ &quot;single word&quot; ]});
 											
 				</code>

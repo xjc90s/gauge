@@ -22,18 +22,18 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"syscall/js"
-
-	"github.com/getgauge/gauge/reporter"
 
 	"github.com/getgauge/gauge/execution/event"
 	"github.com/getgauge/gauge/execution/item"
-	"github.com/getgauge/gauge/plugin"
-
+	"github.com/getgauge/gauge/formatter"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
 	"github.com/getgauge/gauge/parser"
+	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/resolver"
+	"github.com/getgauge/gauge/result"
 	"github.com/getgauge/gauge/runner"
 	"github.com/getgauge/gauge/validation"
 )
@@ -69,6 +69,47 @@ func validate(s *gauge.Specification, r runner.Runner) {
 	}
 }
 
+func setReporter(wg *sync.WaitGroup) {
+	ch := make(chan event.ExecutionEvent, 0)
+	event.Register(ch, event.SuiteStart, event.SpecStart, event.SpecEnd, event.ScenarioStart, event.ScenarioEnd, event.StepStart, event.StepEnd, event.ConceptStart, event.ConceptEnd, event.SuiteEnd)
+	wg.Add(1)
+
+	go func() {
+		for {
+			e := <-ch
+			switch e.Topic {
+			case event.SpecStart:
+				fmt.Printf("# %s\n", (*e.Item.(*gauge.Specification)).Heading.Value)
+			case event.ScenarioStart:
+				if e.Result.(*result.ScenarioResult).ProtoScenario.GetExecutionStatus() == gauge_messages.ExecutionStatus_SKIPPED {
+					continue
+				}
+				sce := e.Item.(*gauge.Scenario)
+				if sce.SpecDataTableRow.GetRowCount() != 0 {
+					fmt.Println(formatter.FormatTable(&sce.SpecDataTableRow))
+				}
+				if sce.ScenarioDataTableRow.GetRowCount() != 0 {
+					fmt.Println(formatter.FormatTable(&sce.ScenarioDataTableRow))
+				}
+				fmt.Printf("## %s\n", sce.Heading.Value)
+			case event.StepEnd:
+				step := e.Item.(gauge.Step)
+				stepRes := e.Result.(*result.StepResult)
+				if stepRes.GetStepFailed() {
+					fmt.Printf("Failed Step: %s\nLine No: %d\nError Message: %s\nStacktrace: %s\n",
+						step.LineText,
+						step.LineNo,
+						stepRes.ProtoStepExecResult().GetExecutionResult().GetErrorMessage(),
+						stepRes.ProtoStepExecResult().GetExecutionResult().GetStackTrace())
+				}
+			case event.SpecEnd:
+				wg.Done()
+				return
+			}
+		}
+	}()
+}
+
 func main() {
 	document := js.Global().Get("document")
 	cb := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -79,17 +120,21 @@ func main() {
 		validate(s, r)
 		resolver.GetResolvedDataTablerows(s.DataTable.Table)
 		item.MaxRetriesCount = 1
-		reporter.SimpleConsoleOutput = true
-		event.AddListener(reporter.ListenExecutionEvents)
+		event.InitRegistry()
+		wg := &sync.WaitGroup{}
+		setReporter(wg)
+		event.Notify(event.NewExecutionEvent(event.SpecStart, s, nil, 1, gauge_messages.ExecutionInfo{}))
 		eRes := item.NewSpecExecutor(s, r, &plugin.GaugePlugins{}, gauge.NewBuildErrors(), 1).Execute(false, true, false)
+		event.Notify(event.NewExecutionEvent(event.SpecEnd, s, nil, 1, gauge_messages.ExecutionInfo{}))
+		wg.Wait()
 		executed := eRes.ScenarioCount - eRes.ScenarioSkippedCount
 		passed := executed - eRes.ScenarioFailedCount
 		fmt.Printf("Scenarios:\t%d executed\t%d passed\t%d failed\t%d skipped\n", executed, passed, eRes.ScenarioFailedCount, eRes.ScenarioSkippedCount)
 		return nil
 	})
 
-	parseButton := document.Call("getElementById", "parseButton")
-	parseButton.Call("addEventListener", "click", cb)
+	runButton := document.Call("getElementById", "runButton")
+	runButton.Call("addEventListener", "click", cb)
 
 	keepAlive()
 }
@@ -157,7 +202,6 @@ func (r inBrowserRunner) ExecuteAndGetStatus(m *gauge_messages.Message) *gauge_m
 			return &gauge_messages.ProtoExecutionResult{Failed: true, ErrorMessage: err.Error(), ErrorType: gauge_messages.ProtoExecutionResult_VERIFICATION}
 		}
 		jsErr := js.Global().Call("execute", m.ExecuteStepRequest.ParsedStepText, string(b))
-		fmt.Println(jsErr)
 		if jsErr != js.Undefined() {
 			return &gauge_messages.ProtoExecutionResult{Failed: true, ErrorMessage: jsErr.String(), ErrorType: gauge_messages.ProtoExecutionResult_VERIFICATION}
 		}
