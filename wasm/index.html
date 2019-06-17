@@ -1,51 +1,7 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<script src="wasm_exec.js"></script>
 		<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/themes/prism-coy.min.css">
-		<script>
-			var console = {
-				log: (s) => document.getElementById('out').innerHTML += `> ${s}\n`,
-				warn: (s) => document.getElementById('out').innerHTML += `> [WARN] ${s}\n`,
-				error: (s) => document.getElementById('out').innerHTML += `> [ERROR] ${s}\n`,
-			};
-			const go = new Go();
-			WebAssembly.instantiateStreaming(fetch("gauge.wasm"), go.importObject).then((result) => {
-				go.run(result.instance);
-			});
-
-			var stepRegistry = {};
-			var generalize = (s) => s.replace(/(<.*?>)|(".*?")/g, "{}");
-			const caller_file = "step_implementation.js";
-			var step = (text, f) => { 
-				var s = stepRegistry[generalize(text)];
-				var caller_line_no = (new Error).stack.split('\n')[1].split('> Function').pop();
-				var caller_line = `${caller_file}${caller_line_no}`;
-				if(s){
-					s.push({func: f, location: caller_line})
-				} else{
-					stepRegistry[generalize(text)] = [{func: f, location: caller_line}]; 
-				}
-			};
-			var beforeScenario = (f, opts) => {};
-			var stepImplemented = (s) => generalize(s) in stepRegistry;
-			var stepImplementationLocations = (s) => stepRegistry[s].map(i => i.location).join('|');
-			var parse = () => {
-				try {
-					stepRegistry = {};
-					new Function(document.getElementById('implementation').innerText)();	
-				} catch (error) {
-					console.error(error);
-				}
-			};
-			var execute = (s, params) => {
-				try {
-					stepRegistry[s][0].func.apply({}, JSON.parse(params).map(x => x.kind === 'table' ? x.table : x.value));					
-				} catch (error) {
-					return error
-				}
-			}
-		</script>
 		<style>
 			.container{
 				display: flex;
@@ -152,6 +108,7 @@ beforeScenario(function () {
 			</pre>
 		</div>
 		<pre class="dark-block"><code id="out"></code></pre>
+		<script data-main="scripts/index" src="scripts/require.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/prism.min.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-javascript.min.js"></script>
 		<script src="//cdnjs.cloudflare.com/ajax/libs/prism/1.16.0/components/prism-markdown.min.js"></script>
