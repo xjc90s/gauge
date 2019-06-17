@@ -166,9 +166,13 @@ func (r inBrowserRunner) Pid() int {
 }
 
 func (r inBrowserRunner) ExecuteAndGetStatus(m *gauge_messages.Message) *gauge_messages.ProtoExecutionResult {
+	type row struct {
+		Cells []string `json:"cells"`
+	}
+	
 	type table struct {
 		Headers []string   `json:"headers"`
-		Rows    [][]string `json:"rows"`
+		Rows    []row `json:"rows"`
 	}
 
 	type param struct {
@@ -187,9 +191,9 @@ func (r inBrowserRunner) ExecuteAndGetStatus(m *gauge_messages.Message) *gauge_m
 		params := []param{}
 		for _, p := range m.ExecuteStepRequest.Parameters {
 			if p.ParameterType == gauge_messages.Parameter_Table {
-				t := table{Headers: p.Table.Headers.Cells, Rows: make([][]string, 0)}
+				t := table{Headers: p.Table.Headers.Cells, Rows: make([]row, 0)}
 				for _, r := range p.Table.Rows {
-					t.Rows = append(t.Rows, r.Cells)
+					t.Rows = append(t.Rows, row{Cells: r.Cells})
 				}
 				params = append(params, param{Kind: "table", Table: t})
 			} else {

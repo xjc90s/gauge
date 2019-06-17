@@ -65,7 +65,7 @@ Here's a step that takes a table
 
 &quot;use strict&quot;;
 
-//var assert = require(&quot;assert&quot;);
+var assert = require(&quot;assert&quot;);
 
 var vowels = [&quot;a&quot;, &quot;e&quot;, &quot;i&quot;, &quot;o&quot;, &quot;u&quot;];
 
@@ -79,16 +79,16 @@ var numberOfVowels = function (word) {
 // --------------------------
 
 step(&quot;Vowels in English language are &lt;vowels&gt;.&quot;, function(vowelsGiven) {
-	// assert.equal(vowelsGiven, vowels.join(&quot;&quot;));
+	assert.equal(vowelsGiven, vowels.join(&quot;&quot;));
 });
 
 step(&quot;The word &lt;word&gt; has &lt;number&gt; vowels.&quot;, function(word, number) {
-	// assert.equal(number, numberOfVowels(word));
+	assert.equal(number, numberOfVowels(word));
 });
 
 step(&quot;Almost all words have vowels &lt;table&gt;&quot;, function(table) {
 	table.rows.forEach(function (row) {
-	// assert.equal(numberOfVowels(row.cells[0]), parseInt(row.cells[1]));
+	assert.equal(numberOfVowels(row.cells[0]), parseInt(row.cells[1]));
 	});
 });
 
