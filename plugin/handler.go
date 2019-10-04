@@ -72,27 +72,19 @@ func (gp *GaugePlugins) NotifyPlugins(message *gauge_messages.Message) {
 	}
 
 	items := []*gauge_messages.ProtoItem{}
-	for _, sr := range message.SuiteExecutionResult.GetSuiteResult().GetSpecResults() {
-		for _, i := range sr.ProtoSpec.Items {
-			i.FileName = sr.ProtoSpec.FileName
-			items = append(items, i)
-		}
-		sr.ProtoSpec.ItemCount = int64(len(sr.ProtoSpec.Items))
-		sr.ProtoSpec.Items = nil
-	}
-
-	for id, plugin := range pluginsWithCapabilityToChunk {
-		if message.MessageType == gauge_messages.Message_SuiteExecutionResult {
-			message.SuiteExecutionResult.SuiteResult.Chunked = true
-			message.SuiteExecutionResult.SuiteResult.ChunkSize = int64(len(items))
-			handle(id, plugin, plugin.sendMessage(message))
-			for _, i := range items {
-				m := &gauge_messages.Message{MessageType: gauge_messages.Message_SuiteExecutionResultItem, SuiteExecutionResultItem: &gauge_messages.SuiteExecutionResultItem{ResultItem: i}}
-				handle(id, plugin, plugin.sendMessage(m))
+	if message.MessageType == gauge_messages.Message_SpecExecutionEnding {
+		for _, specItem := range message.SpecExecutionEndingRequest.GetSpecResult().ProtoSpec.Items {
+			if specItem.ItemType != gauge_messages.ProtoItem_Scenario {
+				items = append(items, specItem)
 			}
-		} else {
-			handle(id, plugin, plugin.sendMessage(message))
 		}
+		message.SpecExecutionEndingRequest.GetSpecResult().ProtoSpec.Items = items
+	}
+	if message.MessageType == gauge_messages.Message_SuiteExecutionResult {
+		message.SuiteExecutionResult.GetSuiteResult().SpecResults = nil
+	}
+	for id, plugin := range pluginsWithCapabilityToChunk {
+		handle(id, plugin, plugin.sendMessage(message))
 	}
 }
 
