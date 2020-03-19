@@ -117,103 +117,104 @@ jobs:
 
   #         rm -rf desc.txt
 
-  pypi-release:
-    runs-on: ubuntu-latest
-    # needs: [github-release]
-    steps:
-      - uses: actions/checkout@v2
+  # pypi-release:
+  #   runs-on: ubuntu-latest
+  #   needs: [github-release]
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: git fetch --prune --unshallow
 
-      - name: Set up Python 3.7
-        uses: actions/setup-python@v1
-        with:
-          python-version: 3.7
+  #     - name: Set up Python 3.7
+  #       uses: actions/setup-python@v1
+  #       with:
+  #         python-version: 3.7
 
-      - name: Set gauge version
-        run: |
-          gauge_version=`git describe --abbrev=0 --tags | sed 's/[a-z\/]*//g'`
-          echo "::set-env name=GAUGE_VERSION::$gauge_version"
+  #     - name: Set gauge version
+  #       run: |
+  #         gauge_version=`git describe --abbrev=0 --tags | sed 's/[a-z\/]*//g'`
+  #         echo "::set-env name=GAUGE_VERSION::$gauge_version"
 
-      - name: Deploy to pypi
-        env:
-          PYPI_USER: ${{ secrets.PYPI_USER }}
-          GAUGE_PACKAGE_NAME: getgauge-cli
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: |
-          cd build/pip
-          pip install requests --user
-          python build.py --dist
-          pip install twine --user
-          gauge_package=`ls dist/$GAUGE_PACKAGE_NAME-$GAUGE_VERSION.tar.gz`
-          echo $gauge_package
-          # python -m twine upload -u $PYPI_USER -p $PYPI_PASSWORD $gauge_package
+  #     - name: Deploy to pypi
+  #       env:
+  #         PYPI_USER: ${{ secrets.PYPI_USER }}
+  #         GAUGE_PACKAGE_NAME: getgauge-cli
+  #         PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+  #       run: |
+  #         cd build/pip
+  #         pip install requests --user
+  #         python build.py --dist
+  #         pip install twine --user
+  #         gauge_package=`ls dist/$GAUGE_PACKAGE_NAME-$GAUGE_VERSION.tar.gz`
+  #         echo $gauge_package
+  #         python -m twine upload -u $PYPI_USER -p $PYPI_PASSWORD $gauge_package
 
-  npm-release:
-    # needs: [github-release]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+  # npm-release:
+  #   needs: [github-release]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: git fetch --prune --unshallow
 
-      - uses: actions/setup-node@v1
-        with:
-          node-version: '10.x'
-          registry-url: 'https://registry.npmjs.org'
+  #     - uses: actions/setup-node@v1
+  #       with:
+  #         node-version: '10.x'
+  #         registry-url: 'https://registry.npmjs.org'
 
-      - name: Set gauge version
-        run: |
-          gauge_version=`git describe --abbrev=0 --tags | sed 's/[a-z\/]*//g'`
-          echo "::set-env name=GAUGE_VERSION::$gauge_version"
+  #     - name: Set gauge version
+  #       run: |
+  #         gauge_version=`git describe --abbrev=0 --tags | sed 's/[a-z\/]*//g'`
+  #         echo "::set-env name=GAUGE_VERSION::$gauge_version"
 
-      - name: Setup Git User
-        run: |
-          git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
-          git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
+  #     - name: Setup Git User
+  #       run: |
+  #         git config --global user.name "$(git --no-pager log --format=format:'%an' -n 1)"
+  #         git config --global user.email "$(git --no-pager log --format=format:'%ae' -n 1)"
 
-      - name: Deploy npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          cd build/npm
-          echo $GAUGE_VERSION
-          npm version $GAUGE_VERSION
-          # npm publish --access=public
+  #     - name: Deploy npm
+  #       env:
+  #         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  #       run: |
+  #         cd build/npm
+  #         npm version $GAUGE_VERSION
+  #         npm publish --access=public
 
-  # # deb-rpm-release:
-  # #   needs: [github-release]
-  # #   runs-on: ubuntu-latest
-  # #   steps:
-  # #     - uses: actions/checkout@v2
+  # deb-rpm-release:
+  #   needs: [github-release]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
 
-  # #     - name: Set up Go 1.13
-  # #       uses: actions/setup-go@v1
-  # #       with:
-  # #         go-version: 1.13
-  # #       id: go
+  #     - name: Set up Go 1.13
+  #       uses: actions/setup-go@v1
+  #       with:
+  #         go-version: 1.13
+  #       id: go
 
-  # #     - name: Set up Ruby 2.6.x
-  # #       uses: actions/setup-ruby@v1
-  # #       with:
-  # #         ruby-version: 2.6.x
+  #     - name: Set up Ruby 2.6.x
+  #       uses: actions/setup-ruby@v1
+  #       with:
+  #         ruby-version: 2.6.x
 
-  # #     - name: Install fpm
-  # #       run: |
-  # #         gem install --no-document fpm
+  #     - name: Install fpm
+  #       run: |
+  #         gem install --no-document fpm
 
-  # #     - name: Prepare deb artifact
-  # #       run: |
-  # #         build/mkdeb.sh
+  #     - name: Prepare deb artifact
+  #       run: |
+  #         build/mkdeb.sh
 
-  # #     - name: Deploy debian
-  # #       env:
-  # #         REPO: gauge-deb
-  # #         PACKAGE: gauge
-  # #         DISTRIBUTIONS: stable
-  # #         COMPONENTS: main
-  # #         USER: ${{ secrets.BINTRAY_API_USER }}
-  # #         API_KEY: ${{ secrets.BINTRAY_API_KEY }}
-  # #         PASSPHRASE: ${{ secrets.BINTRAY_GPG_SIGNING_PASSPHRASE }}
-  # #       run: |
-  # #         cd deploy
-  # #         sh ../build/publish_deb_to_bintray.sh
+  #     - name: Deploy debian
+  #       env:
+  #         REPO: gauge-deb
+  #         PACKAGE: gauge
+  #         DISTRIBUTIONS: stable
+  #         COMPONENTS: main
+  #         USER: ${{ secrets.BINTRAY_API_USER }}
+  #         API_KEY: ${{ secrets.BINTRAY_API_KEY }}
+  #         PASSPHRASE: ${{ secrets.BINTRAY_GPG_SIGNING_PASSPHRASE }}
+  #       run: |
+  #         cd deploy
+  #         sh ../build/publish_deb_to_bintray.sh
 
   #     - name: Deploy rpm
   #       env:
@@ -235,39 +236,47 @@ jobs:
   #         ls
   #         sh ../build/publish_rpm_to_bintray.sh
 
-  choco-release:
-    # needs: [github-release]
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v2
+  # choco-release:
+  #   needs: [github-release]
+  #   runs-on: windows-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - run: git fetch --prune --unshallow
 
-      - name: Set gauge version
-        run: |
-          $gauge_version=($Env:GITHUB_REF -replace "[a-zA-Z//]+", '' )
-          echo "::set-env name=GAUGE_VERSION::$gauge_version"
+  #     - name: Set gauge version
+  #       run: |
+  #         gauge_version=`git describe --abbrev=0 --tags | sed 's/[a-z\/]*//g'`
+  #         echo "::set-env name=GAUGE_VERSION::$gauge_version"
+  #       shell: bash
 
-      - name: Clone chocolatey-packages
-        run: |
-          git clone https://github.com/getgauge/chocolatey-packages
+  #     - name: Clone chocolatey-packages
+  #       run: |
+  #         git clone https://github.com/getgauge/chocolatey-packages
 
-      - name: Deploy to Gauge $GAUGE_VERSION to choco
-        shell: pwsh
-        env:
-          API_KEY: ${{ secrets.NUGET_API_KEY }}
-        run: |
-          cd chocolatey-packages
-          $Env:GAUGE_VERSION | Set-Content version
-          cd gauge
-          ./package.ps1
-          ls
-          # choco push "gauge.$Env:GAUGE_VERSION.nupkg" -k $Env:API_KEY
+  #     - name: Deploy to Gauge $GAUGE_VERSION to choco
+  #       shell: pwsh
+  #       env:
+  #         API_KEY: ${{ secrets.NUGET_API_KEY }}
+  #       run: |
+  #         cd chocolatey-packages
+  #         $Env:GAUGE_VERSION | Set-Content version
+  #         cd gauge
+  #         ./package.ps1
+  #         choco push "gauge.$Env:GAUGE_VERSION.nupkg" -k $Env:API_KEY
 
   brew-release:
     # needs: [github-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - run: git fetch --prune --unshallow
+
       - uses: geertvdc/setup-hub@master
+
+      - name: Set up Ruby 2.6.x
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: 2.6.x
 
       - name: Set gauge version
         run: |
@@ -281,5 +290,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GAUGEBOT_GITHUB_TOKEN }}
         run: |
           cd build/brew
-          echo $GAUGE_VERSION
-          # bash create_brew_pr.sh
+          bash create_brew_pr.sh

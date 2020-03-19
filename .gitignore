@@ -22,7 +22,6 @@ _testmain.go
 *.exe
 !src/github.com/twist2
 tags
-.bundle
 bin/
 deploy
 .idea
