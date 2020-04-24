@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - templates # remove it before creating the PR
   pull_request:
     branches:
       - master
