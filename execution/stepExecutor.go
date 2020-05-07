@@ -11,6 +11,7 @@ import (
 	"github.com/getgauge/gauge/execution/result"
 	"github.com/getgauge/gauge/gauge"
 	"github.com/getgauge/gauge/gauge_messages"
+	"github.com/getgauge/gauge/logger"
 	"github.com/getgauge/gauge/plugin"
 	"github.com/getgauge/gauge/runner"
 )
@@ -24,6 +25,7 @@ type stepExecutor struct {
 
 // TODO: stepExecutor should not consume both gauge.Step and gauge_messages.ProtoStep. The usage of ProtoStep should be eliminated.
 func (e *stepExecutor) executeStep(step *gauge.Step, protoStep *gauge_messages.ProtoStep) *result.StepResult {
+	logger.Debugf(false, "Step execution starting on stream : %d. Step(%p) has %d fragments and ProtoStep(%p) has %d fragments", e.stream, step, len(step.GetFragments()), protoStep, len(protoStep.GetFragments()))
 	stepRequest := e.createStepRequest(protoStep)
 	e.currentExecutionInfo.CurrentStep = &gauge_messages.StepInfo{Step: stepRequest, IsFailed: false}
 	stepResult := result.NewStepResult(protoStep)
@@ -51,7 +53,7 @@ func (e *stepExecutor) executeStep(step *gauge.Step, protoStep *gauge_messages.P
 		stepResult.SetProtoExecResult(stepExecutionStatus)
 	}
 	e.notifyAfterStepHook(stepResult)
-
+	logger.Debugf(false, "Step execution ending on stream : %d. Step(%p) has %d fragments and ProtoStep(%p) has %d fragments", e.stream, step, len(step.GetFragments()), protoStep, len(protoStep.GetFragments()))
 	event.Notify(event.NewExecutionEvent(event.StepEnd, *step, stepResult, e.stream, *e.currentExecutionInfo))
 	defer e.currentExecutionInfo.CurrentStep.Reset()
 	return stepResult
