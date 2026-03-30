@@ -62,6 +62,22 @@ func (s *MySuite) TestGetScenarioFailedMetadata(c *C) {
 	c.Assert(failedMeta.failedItemsMap[spec1Abs][spec1Rel+":2"], Equals, true)
 }
 
+func (s *MySuite) TestScenarioPassingOnRetryRemovesFailedMetadata(c *C) {
+	spec1Rel := filepath.Join("specs", "example1.spec")
+	spec1Abs := filepath.Join(config.ProjectRoot, spec1Rel)
+	sce := &gauge.Scenario{Span: &gauge.Span{Start: 2}}
+	execInfo := &gauge_messages.ExecutionInfo{CurrentSpec: &gauge_messages.SpecInfo{FileName: spec1Abs}}
+	failedResult := &result.ScenarioResult{ProtoScenario: &gauge_messages.ProtoScenario{ExecutionStatus: gauge_messages.ExecutionStatus_FAILED}}
+	passedResult := &result.ScenarioResult{ProtoScenario: &gauge_messages.ProtoScenario{ExecutionStatus: gauge_messages.ExecutionStatus_PASSED}}
+
+	prepareScenarioFailedMetadata(failedResult, sce, execInfo)
+	c.Assert(failedMeta.failedItemsMap[spec1Abs][spec1Rel+":2"], Equals, true)
+
+	prepareScenarioFailedMetadata(passedResult, sce, execInfo)
+	_, exists := failedMeta.failedItemsMap[spec1Abs]
+	c.Assert(exists, Equals, false)
+}
+
 func (s *MySuite) TestAddSpecPreHookFailedMetadata(c *C) {
 	spec1Rel := filepath.Join("specs", "example1.spec")
 	spec1Abs := filepath.Join(config.ProjectRoot, spec1Rel)
