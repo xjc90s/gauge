@@ -208,7 +208,7 @@ jobs:
         run: |
           cd build/npm
           npm version $GAUGE_VERSION
-          npm publish --access=public --loglevel=silly
+          npm publish --access=public
 
   choco-release:
     runs-on: windows-latest
