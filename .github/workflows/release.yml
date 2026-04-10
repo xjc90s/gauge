@@ -149,6 +149,7 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.14'
+          check-latest: 'true'
           cache: 'pip' # caching pip dependencies
 
       - name: Fetch gauge version
